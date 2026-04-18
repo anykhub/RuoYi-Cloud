@@ -1,0 +1,15 @@
+/app/ruoyi-api/ruoyi-api-system/src/main/java/com/ruoyi/system/api/RemoteFileService.java
+/app/ruoyi-api/ruoyi-api-system/src/main/java/com/ruoyi/system/api/RemoteLogService.java
+/app/ruoyi-api/ruoyi-api-system/src/main/java/com/ruoyi/system/api/RemoteUserService.java
+/app/ruoyi-api/ruoyi-api-system/src/main/java/com/ruoyi/system/api/domain/SysDept.java
+/app/ruoyi-api/ruoyi-api-system/src/main/java/com/ruoyi/system/api/domain/SysDictData.java
+/app/ruoyi-api/ruoyi-api-system/src/main/java/com/ruoyi/system/api/domain/SysDictType.java
+/app/ruoyi-api/ruoyi-api-system/src/main/java/com/ruoyi/system/api/domain/SysFile.java
+/app/ruoyi-api/ruoyi-api-system/src/main/java/com/ruoyi/system/api/domain/SysLogininfor.java
+/app/ruoyi-api/ruoyi-api-system/src/main/java/com/ruoyi/system/api/domain/SysOperLog.java
+/app/ruoyi-api/ruoyi-api-system/src/main/java/com/ruoyi/system/api/domain/SysRole.java
+/app/ruoyi-api/ruoyi-api-system/src/main/java/com/ruoyi/system/api/domain/SysUser.java
+/app/ruoyi-api/ruoyi-api-system/src/main/java/com/ruoyi/system/api/factory/RemoteFileFallbackFactory.java
+/app/ruoyi-api/ruoyi-api-system/src/main/java/com/ruoyi/system/api/factory/RemoteLogFallbackFactory.java
+/app/ruoyi-api/ruoyi-api-system/src/main/java/com/ruoyi/system/api/factory/RemoteUserFallbackFactory.java
+/app/ruoyi-api/ruoyi-api-system/src/main/java/com/ruoyi/system/api/model/LoginUser.java
