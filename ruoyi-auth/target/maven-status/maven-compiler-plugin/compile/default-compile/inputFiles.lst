@@ -1,9 +1,0 @@
-/app/ruoyi-auth/src/main/java/com/ruoyi/auth/RuoYiAuthApplication.java
-/app/ruoyi-auth/src/main/java/com/ruoyi/auth/controller/SsoController.java
-/app/ruoyi-auth/src/main/java/com/ruoyi/auth/controller/SsoInternalController.java
-/app/ruoyi-auth/src/main/java/com/ruoyi/auth/controller/TokenController.java
-/app/ruoyi-auth/src/main/java/com/ruoyi/auth/form/LoginBody.java
-/app/ruoyi-auth/src/main/java/com/ruoyi/auth/form/RegisterBody.java
-/app/ruoyi-auth/src/main/java/com/ruoyi/auth/service/SysLoginService.java
-/app/ruoyi-auth/src/main/java/com/ruoyi/auth/service/SysPasswordService.java
-/app/ruoyi-auth/src/main/java/com/ruoyi/auth/service/SysRecordLogService.java

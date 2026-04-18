@@ -3,7 +3,6 @@ package org.springblade.sso.controller;
 import org.springblade.core.secure.BladeUser;
 import org.springblade.core.secure.utils.AuthUtil;
 import org.springblade.core.tool.api.R;
-import org.springblade.sso.cache.SsoTokenCache;
 import org.springblade.sso.entity.User;
 import org.springblade.sso.service.IUserService;
 import org.springframework.beans.factory.annotation.Value;
@@ -25,7 +24,6 @@ import java.util.Map;
 @RequestMapping("/blade-sso/internal")
 public class BladeSsoInternalController {
 
-    private final SsoTokenCache ssoTokenCache;
     private final IUserService userService;
 
     @Value("${sso.internal.secret}")
@@ -36,39 +34,8 @@ public class BladeSsoInternalController {
 
     private final RestTemplate restTemplate = new RestTemplate();
 
-    public BladeSsoInternalController(SsoTokenCache ssoTokenCache, IUserService userService) {
-        this.ssoTokenCache = ssoTokenCache;
+    public BladeSsoInternalController(IUserService userService) {
         this.userService = userService;
-    }
-
-    /**
-     * 供 A 系统校验的接口
-     * 验证内部密钥，从 SsoTokenCache 取出并删除 token，返回 email 等信息
-     *
-     * @param request 包含 token 的请求体
-     * @param secret  请求头包含 X-Internal-Secret 密钥
-     * @return 返回验证结果，包含 email
-     */
-    @PostMapping("/verify-token")
-    public R<String> verifyToken(@RequestBody Map<String, String> request, @RequestHeader(value = "X-Internal-Secret", required = false) String secret) {
-        // 强制校验 Header 中的 X-Internal-Secret，防范安全漏洞
-        if (secret == null || !secret.equals(internalSecret)) {
-            return R.fail("非法的内部通信密钥");
-        }
-
-        String token = request.get("token");
-        if (token == null || token.trim().isEmpty()) {
-            return R.fail("Token 不能为空");
-        }
-
-        // 从缓存中获取并立刻删除 token（防重放）
-        String email = ssoTokenCache.getAndRemove(token);
-
-        if (email != null) {
-            return R.data(email);
-        } else {
-            return R.fail("Token 无效或已过期");
-        }
     }
 
     /**

@@ -2,11 +2,9 @@ package org.springblade.sso.controller;
 
 import lombok.AllArgsConstructor;
 import org.springblade.core.tool.api.R;
-import org.springblade.core.secure.utils.AuthUtil;
 import org.springblade.core.secure.BladeUser;
 import org.springblade.core.secure.utils.TokenUtil;
 import org.springblade.core.secure.AuthInfo;
-import org.springblade.sso.cache.SsoTokenCache;
 import org.springblade.sso.entity.User;
 import org.springblade.sso.service.IUserService;
 import org.springframework.beans.factory.annotation.Value;
@@ -33,7 +31,6 @@ import java.util.UUID;
 // @AllArgsConstructor // 注释掉，以便手动注入带有 @Value 的属性
 public class BladeSsoController {
 
-    private final SsoTokenCache ssoTokenCache;
     private final IUserService userService;
 
     // 使用 @Value 注入属性，需要显式构造函数或不使用 @AllArgsConstructor
@@ -45,35 +42,8 @@ public class BladeSsoController {
 
     private final RestTemplate restTemplate = new RestTemplate();
 
-    public BladeSsoController(SsoTokenCache ssoTokenCache, IUserService userService) {
-        this.ssoTokenCache = ssoTokenCache;
+    public BladeSsoController(IUserService userService) {
         this.userService = userService;
-    }
-
-    /**
-     * B 跳 A 时，生成短效 token
-     *
-     * @return 返回生成的短效 token
-     */
-    @PostMapping("/generate-token")
-    public R<String> generateToken() {
-        BladeUser user = AuthUtil.getUser();
-        if (user == null) {
-            return R.fail("未登录");
-        }
-
-        // 假设通过某种方式可以获取用户的邮箱，这里简单用账号代替或者调用 userService 获取详情
-        // 为了演示，这里假设 user 中有 email 或直接用 account 作为识别
-        User detailUser = userService.getById(user.getUserId());
-        if (detailUser == null) {
-            return R.fail("用户信息不存在");
-        }
-
-        String token = UUID.randomUUID().toString();
-        // 存入自定义缓存，30秒过期
-        ssoTokenCache.put(token, detailUser.getEmail());
-
-        return R.data(token);
     }
 
     /**
