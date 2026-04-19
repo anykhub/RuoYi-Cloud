@@ -940,7 +940,8 @@ export default {
         if (res.code === 200 && res.data) {
           const token = res.data;
           // 2. 拼接 SSO 回调地址重定向至目标系统
-          const targetUrl = `http://localhost:8081/sso/callback?redirect=/authority/role&token=${token}&X-Internal-Secret=2121212121`;
+          //const targetUrl = `http://localhost:8081/sso/callback?redirect=/authority/role&token=${token}&X-Internal-Secret=2121212121`;
+          const targetUrl = `http://localhost:8081/sso/callback?redirect=/authority/role&token=${token}`;
           window.open(targetUrl, "_blank");
         } else {
           this.$message.error('生成 SSO Token 失败');
