@@ -1,0 +1,180 @@
+sso:
+  internal-secret: 2121212121
+  ruoyi:
+    verify-url: http://localhost:8080/auth/sso/internal/verify-token
+  system:
+    http-url: http://127.0.0.1:1888
+
+
+package org.springblade.modules.sso;
+
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletRequestWrapper;
+import jakarta.servlet.http.HttpServletResponse;
+import lombok.extern.slf4j.Slf4j;
+import org.springblade.core.secure.AuthInfo;
+import org.springblade.core.secure.constant.SecureConstant;
+import org.springblade.core.tool.utils.Func;
+import org.springblade.modules.auth.granter.ITokenGranter;
+import org.springblade.modules.auth.granter.TokenGranterBuilder;
+import org.springblade.modules.auth.granter.TokenParameter;
+import org.springblade.modules.auth.utils.TokenUtil;
+import org.springblade.modules.system.entity.UserInfo;
+import org.springblade.modules.system.service.IUserService;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.HttpEntity;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpMethod;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.client.RestTemplate;
+import org.springframework.web.context.request.RequestContextHolder;
+import org.springframework.web.context.request.ServletRequestAttributes;
+
+import java.io.IOException;
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
+import java.util.Collections;
+import java.util.Enumeration;
+import java.util.List;
+import java.util.Map;
+
+/**
+ * SSO回调处理器
+ *
+ * @author Gemini CLI
+ */
+@Slf4j
+@RestController
+@RequestMapping("/sso")
+public class SsoCallbackController {
+
+	@Value("${sso.internal-secret}")
+	private String internalSecret;
+
+	@Value("${sso.ruoyi.verify-url}")
+	private String systemVerifyUrl;
+
+	@Value("${sso.system.http-url}")
+	private String baseUrl;
+
+	@Autowired
+	private IUserService userService;
+
+	private final RestTemplate restTemplate = new RestTemplate();
+
+	@GetMapping("/callback")
+	public void callback(@RequestParam("token") String token,
+						 @RequestParam("redirect") String redirect,
+						 HttpServletRequest request,
+						 HttpServletResponse response) throws IOException {
+		try {
+			// 1. 设置请求头以请求远程验证系统
+			HttpHeaders headers = new HttpHeaders();
+			headers.set("X-Internal-Secret", internalSecret);
+
+			java.util.Map<String, String> requestBody = new java.util.HashMap<>();
+			requestBody.put("token", token);
+			HttpEntity<java.util.Map<String, String>> entity = new HttpEntity<>(requestBody, headers);
+
+			// 2. 验证 token
+			ResponseEntity<Map> res = restTemplate.exchange(systemVerifyUrl, HttpMethod.POST, entity, Map.class);
+			Map<String, Object> body = res.getBody();
+
+			// 3. 验证通过
+			if (res.getStatusCode().is2xxSuccessful() && body != null && Integer.valueOf(200).equals(body.get("code"))) {
+				Map<String, Object> data = (Map<String, Object>) body.get("data");
+				String userName = Func.toStr(data.get("userName"));
+
+				// 模拟登录逻辑：设置登录参数
+				String password = "40e9c1b8a1f69680274f1b9fff42e8adec7b7656dfed9b09a58b42bbc488b28ae8e60114007213ebde475d6ec4e0626463bb3ccefb7736b546e0de2b1b8e4e3b109c4c6cd1c1bd401d3cf1502c30290ebafec82e261f5cdcc70a149f0cd340518f6e86fd2f";
+				String tenantId = "000000";
+				String grantType = "password";
+
+				// 4. 使用 TokenParameter 封装参数
+				TokenParameter tokenParameter = new TokenParameter();
+				tokenParameter.getArgs().set("tenantId", tenantId)
+					.set("account", userName)
+					.set("password", password)
+					.set("grantType", grantType)
+					.set("userType", TokenUtil.DEFAULT_USER_TYPE);
+
+				// 5. 获取 granter 并执行登录获取 UserInfo
+				ITokenGranter granter = TokenGranterBuilder.getGranter(grantType);
+				UserInfo userInfo = granter.grant(tokenParameter);
+
+				if (userInfo == null || userInfo.getUser() == null) {
+					response.sendRedirect(getFinalBaseUrl() + "/login?error=user_not_found");
+					return;
+				}
+
+				// 6. 生成 AuthInfo (包含 JWT 令牌)
+				// 注意：createAuthInfo 内部会调用 SecureUtil.createJWT，而后者通过 WebUtil.getRequest() 获取当前请求并读取 Authorization 头。
+				// 由于回调是 GET 请求，默认没有此头，我们通过 RequestWrapper 手动注入该信息，并临时替换 Spring 的请求上下文。
+				HttpServletRequestWrapper requestWrapper = new HttpServletRequestWrapper(request) {
+					@Override
+					public String getHeader(String name) {
+						if (SecureConstant.BASIC_HEADER_KEY.equalsIgnoreCase(name) || "Authorization".equalsIgnoreCase(name)) {
+							return "Basic c2FiZXI6c2FiZXJfc2VjcmV0";
+						}
+						return super.getHeader(name);
+					}
+
+					@Override
+					public Enumeration<String> getHeaderNames() {
+						List<String> names = Collections.list(super.getHeaderNames());
+						if (!names.contains("Authorization")) {
+							names.add("Authorization");
+						}
+						return Collections.enumeration(names);
+					}
+				};
+
+				// 临时替换请求上下文
+				ServletRequestAttributes attributes = new ServletRequestAttributes(requestWrapper);
+				RequestContextHolder.setRequestAttributes(attributes);
+
+				// 执行令牌签发
+				AuthInfo authInfo = TokenUtil.createAuthInfo(userInfo);
+
+				// 7. 重定向到前端，携带与正常登录一致的令牌信息
+				/*String redirectUrl = String.format("%s?redirect=%s&access_token=%s&refresh_token=%s&tenant_id=%s&token_type=%s&account=%s",
+					getFinalBaseUrl(),
+					redirect,
+					URLEncoder.encode(authInfo.getAccessToken(), StandardCharsets.UTF_8),
+					URLEncoder.encode(authInfo.getRefreshToken(), StandardCharsets.UTF_8),
+					URLEncoder.encode(authInfo.getTenantId(), StandardCharsets.UTF_8),
+					URLEncoder.encode(authInfo.getTokenType(), StandardCharsets.UTF_8),
+					URLEncoder.encode(authInfo.getAccount(), StandardCharsets.UTF_8)
+				);*/
+				// 7. 重定向到前端，携带与正常登录一致的令牌信息
+				// 【修改点】：在 %s 后面紧接着补上 /#/sso ，让它指向 Vue 里面的单点登录界面
+				String redirectUrl = String.format("%s/#/sso?redirect=%s&access_token=%s&refresh_token=%s&tenant_id=%s&token_type=%s&account=%s",
+					getFinalBaseUrl(),
+					redirect,
+					URLEncoder.encode(authInfo.getAccessToken(), StandardCharsets.UTF_8),
+					URLEncoder.encode(authInfo.getRefreshToken(), StandardCharsets.UTF_8),
+					URLEncoder.encode(authInfo.getTenantId(), StandardCharsets.UTF_8),
+					URLEncoder.encode(authInfo.getTokenType(), StandardCharsets.UTF_8),
+					URLEncoder.encode(authInfo.getAccount(), StandardCharsets.UTF_8)
+				);
+				response.sendRedirect(redirectUrl);
+				System.out.println("redirectUrl: " + redirectUrl);
+				return;
+			}
+		} catch (Exception e) {
+			log.error("SSO callback verification failed, token: {}", token, e);
+		}
+
+		// 失败跳转
+		response.sendRedirect(getFinalBaseUrl() + "/login?error=sso_failed");
+	}
+
+	private String getFinalBaseUrl() {
+		return baseUrl.replace("localhost", "127.0.0.1");
+	}
+}
