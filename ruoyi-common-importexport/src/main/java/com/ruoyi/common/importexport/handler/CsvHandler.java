@@ -44,10 +44,17 @@ public class CsvHandler<T> extends AbstractImportExportHandler<T> {
             os.write(UTF8_BOM);
             OutputStreamWriter osw = new OutputStreamWriter(os, StandardCharsets.UTF_8);
 
-            Field[] fields = clazz.getDeclaredFields();
-            String[] headers = new String[fields.length];
-            for (int i = 0; i < fields.length; i++) {
-                headers[i] = fields[i].getName();
+            Field[] declaredFields = clazz.getDeclaredFields();
+            List<Field> fields = new ArrayList<>();
+            for (Field f : declaredFields) {
+                if (!java.lang.reflect.Modifier.isStatic(f.getModifiers()) && !java.lang.reflect.Modifier.isTransient(f.getModifiers())) {
+                    fields.add(f);
+                }
+            }
+
+            String[] headers = new String[fields.size()];
+            for (int i = 0; i < fields.size(); i++) {
+                headers[i] = fields.get(i).getName();
             }
 
             try (CSVPrinter printer = new CSVPrinter(osw, CSVFormat.DEFAULT.withHeader(headers))) {
@@ -74,7 +81,13 @@ public class CsvHandler<T> extends AbstractImportExportHandler<T> {
         try {
             InputStreamReader isr = new InputStreamReader(is, StandardCharsets.UTF_8);
             CSVParser parser = CSVFormat.DEFAULT.withFirstRecordAsHeader().parse(isr);
-            Field[] fields = clazz.getDeclaredFields();
+            Field[] declaredFields = clazz.getDeclaredFields();
+            List<Field> fields = new ArrayList<>();
+            for (Field f : declaredFields) {
+                if (!java.lang.reflect.Modifier.isStatic(f.getModifiers()) && !java.lang.reflect.Modifier.isTransient(f.getModifiers())) {
+                    fields.add(f);
+                }
+            }
 
             for (CSVRecord record : parser) {
                 T obj = clazz.getDeclaredConstructor().newInstance();
