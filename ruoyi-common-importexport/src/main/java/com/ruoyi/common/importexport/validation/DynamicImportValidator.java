@@ -4,12 +4,14 @@ import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.InitializingBean;
+import org.springframework.beans.BeanWrapper;
+import org.springframework.beans.NullValueInNestedPathException;
+import org.springframework.beans.PropertyAccessorFactory;
 import org.springframework.core.io.ClassPathResource;
 import org.springframework.stereotype.Component;
 import org.springframework.util.StringUtils;
 
 import java.io.InputStream;
-import java.lang.reflect.Field;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -74,11 +76,11 @@ public class DynamicImportValidator implements InitializingBean {
             return errors;
         }
 
+        BeanWrapper beanWrapper = PropertyAccessorFactory.forBeanPropertyAccess(target);
+
         for (FieldRule rule : rules) {
             try {
-                Field field = target.getClass().getDeclaredField(rule.getFieldName());
-                field.setAccessible(true);
-                Object value = field.get(target);
+                Object value = beanWrapper.getPropertyValue(rule.getFieldName());
 
                 // 校验必填
                 if (Boolean.TRUE.equals(rule.getRequired())) {
@@ -95,10 +97,15 @@ public class DynamicImportValidator implements InitializingBean {
                         errors.add(getMessage(rule, "格式不正确"));
                     }
                 }
-            } catch (NoSuchFieldException e) {
-                log.warn("类 {} 中不存在字段 {}", className, rule.getFieldName());
-            } catch (IllegalAccessException e) {
-                log.error("无法访问字段", e);
+            } catch (NullValueInNestedPathException e) {
+                // 当中间路径对象为 null 时，说明最终属性也为空
+                if (Boolean.TRUE.equals(rule.getRequired())) {
+                    errors.add(getMessage(rule, "不能为空"));
+                }
+            } catch (org.springframework.beans.NotReadablePropertyException e) {
+                log.warn("类 {} 中无法读取字段 {}", className, rule.getFieldName());
+            } catch (Exception e) {
+                log.error("读取字段异常: " + rule.getFieldName(), e);
             }
         }
 

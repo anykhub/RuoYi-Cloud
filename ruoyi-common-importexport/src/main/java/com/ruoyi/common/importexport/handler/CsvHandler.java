@@ -63,6 +63,9 @@ public class CsvHandler<T> extends AbstractImportExportHandler<T> {
                     for (Field field : fields) {
                         field.setAccessible(true);
                         Object value = field.get(item);
+                        if (value != null && !(value instanceof String) && !(value instanceof Number) && !(value instanceof Boolean)) {
+                            value = com.alibaba.fastjson2.JSON.toJSONString(value);
+                        }
                         record.add(value != null ? value.toString() : "");
                     }
                     printer.printRecord(record);
@@ -108,6 +111,8 @@ public class CsvHandler<T> extends AbstractImportExportHandler<T> {
                                 field.set(obj, Double.parseDouble(valueStr));
                             } else if (field.getType() == Boolean.class || field.getType() == boolean.class) {
                                 field.set(obj, Boolean.parseBoolean(valueStr));
+                            } else {
+                                field.set(obj, com.alibaba.fastjson2.JSON.parseObject(valueStr, field.getType()));
                             }
                         }
                     }

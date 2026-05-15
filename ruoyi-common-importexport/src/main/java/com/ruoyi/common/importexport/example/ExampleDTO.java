@@ -29,4 +29,7 @@ public class ExampleDTO implements Serializable {
 
     @ExcelProperty("备注")
     private String remark;
+
+    @ExcelProperty(value = "详情", converter = ExampleDetailDTOConverter.class)
+    private ExampleDetailDTO detail;
 }

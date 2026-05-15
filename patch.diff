@@ -1,0 +1,10 @@
+--- ruoyi-common-importexport/src/main/java/com/ruoyi/common/importexport/example/ExampleDTO.java
++++ ruoyi-common-importexport/src/main/java/com/ruoyi/common/importexport/example/ExampleDTO.java
+@@ -30,6 +30,6 @@
+     @ExcelProperty("备注")
+     private String remark;
+
+-    @ExcelProperty("详情")
++    @ExcelProperty(value = "详情", converter = ExampleDetailDTOConverter.class)
+     private ExampleDetailDTO detail;
+ }

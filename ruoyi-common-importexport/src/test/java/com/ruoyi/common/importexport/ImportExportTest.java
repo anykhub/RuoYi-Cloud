@@ -3,6 +3,7 @@ package com.ruoyi.common.importexport;
 import com.ruoyi.common.importexport.dto.ImportResult;
 import com.ruoyi.common.importexport.enums.FileTypeEnum;
 import com.ruoyi.common.importexport.example.ExampleDTO;
+import com.ruoyi.common.importexport.example.ExampleDetailDTO;
 import com.ruoyi.common.importexport.example.ExampleService;
 import lombok.extern.slf4j.Slf4j;
 import org.junit.jupiter.api.Assertions;
@@ -41,6 +42,9 @@ public class ImportExportTest {
         dto1.setUsername("张三");
         dto1.setAge(25);
         dto1.setRemark("测试人员1");
+        ExampleDetailDTO detail1 = new ExampleDetailDTO();
+        detail1.setDescription("张三的描述");
+        dto1.setDetail(detail1);
         testData.add(dto1);
 
         ExampleDTO dto2 = new ExampleDTO();
@@ -48,14 +52,18 @@ public class ImportExportTest {
         dto2.setUsername("李四");
         dto2.setAge(30);
         dto2.setRemark("测试人员2");
+        ExampleDetailDTO detail2 = new ExampleDetailDTO();
+        detail2.setDescription("李四的描述");
+        dto2.setDetail(detail2);
         testData.add(dto2);
 
-        // 构造一条会导致校验失败的数据 (年龄为空)
+        // 构造一条会导致校验失败的数据 (年龄为空, detail 为 null 引发嵌套验证失败)
         ExampleDTO dto3 = new ExampleDTO();
         dto3.setId(3L);
         dto3.setUsername("王五");
         dto3.setAge(null); // 年龄为 @NotNull
         dto3.setRemark("异常数据测试");
+        dto3.setDetail(null);
         testData.add(dto3);
     }
 
