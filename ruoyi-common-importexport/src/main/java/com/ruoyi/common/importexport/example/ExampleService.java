@@ -4,6 +4,7 @@ import com.ruoyi.common.importexport.core.ImportExportHandler;
 import com.ruoyi.common.importexport.dto.ImportResult;
 import com.ruoyi.common.importexport.enums.FileTypeEnum;
 import com.ruoyi.common.importexport.factory.FileHandlerFactory;
+import com.ruoyi.common.importexport.validation.DynamicImportValidator;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -27,6 +28,9 @@ public class ExampleService {
 
     @Autowired
     private Validator validator;
+
+    @Autowired
+    private DynamicImportValidator dynamicImportValidator;
 
     /**
      * 通用导出
@@ -52,14 +56,26 @@ public class ExampleService {
             ExampleDTO dto = rawDataList.get(i);
             Set<ConstraintViolation<ExampleDTO>> violations = validator.validate(dto);
 
-            if (violations.isEmpty()) {
-                result.addSuccess(dto);
-            } else {
-                StringBuilder errorMsg = new StringBuilder("第 " + (i + 1) + " 行数据校验失败: ");
+            // 静态注解校验错误
+            StringBuilder errorMsg = new StringBuilder();
+            if (!violations.isEmpty()) {
                 for (ConstraintViolation<ExampleDTO> violation : violations) {
                     errorMsg.append(violation.getMessage()).append("; ");
                 }
-                result.addError(errorMsg.toString());
+            }
+
+            // 动态规则校验错误
+            List<String> dynamicErrors = dynamicImportValidator.validate(dto);
+            if (!dynamicErrors.isEmpty()) {
+                for (String err : dynamicErrors) {
+                    errorMsg.append(err).append("; ");
+                }
+            }
+
+            if (errorMsg.length() == 0) {
+                result.addSuccess(dto);
+            } else {
+                result.addError("第 " + (i + 1) + " 行数据校验失败: " + errorMsg.toString());
             }
         }
 
