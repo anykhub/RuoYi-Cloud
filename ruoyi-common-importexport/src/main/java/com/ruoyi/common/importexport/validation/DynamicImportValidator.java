@@ -6,12 +6,10 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.InitializingBean;
 import org.springframework.beans.BeanWrapper;
 import org.springframework.beans.NullValueInNestedPathException;
-import org.springframework.core.io.Resource;
-import org.springframework.core.io.support.PathMatchingResourcePatternResolver;
 import org.springframework.beans.PropertyAccessorFactory;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.core.env.Environment;
+import org.springframework.core.io.Resource;
+import org.springframework.core.io.support.PathMatchingResourcePatternResolver;
 import org.springframework.core.io.support.ResourcePatternResolver;
 import org.springframework.stereotype.Component;
 import org.springframework.util.StringUtils;
@@ -40,26 +38,20 @@ public class DynamicImportValidator implements InitializingBean {
     @Value("${importexport.rules.content:}")
     private String rulesContent;
 
-    @Value("${importexport.rules.nacos-data-id:import-rules.json}")
-    private String nacosDataId;
-
-    @Autowired
-    private Environment environment;
-
     @Override
     public void afterPropertiesSet() {
         loadRules();
     }
 
     /**
-     * 加载动态校验规则 (优先从直接配置的内容读取，否则从 Nacos DataID 读取，最后从文件路径读取)
+     * 加载动态校验规则 (优先从直接配置的内容读取，否则从文件路径读取)
      */
     public void loadRules() {
         classRulesMap.clear();
         int totalRules = 0;
 
         try {
-            // 1. 优先解析直接注入的 JSON 内容 (例如从 Nacos properties 中配置的 content)
+            // 优先解析直接注入的 JSON 内容 (例如从 Nacos 直传的内容)
             if (StringUtils.hasText(rulesContent)) {
                 List<FieldRule> rules = objectMapper.readValue(rulesContent, new TypeReference<List<FieldRule>>() {});
                 for (FieldRule rule : rules) {
@@ -70,21 +62,7 @@ public class DynamicImportValidator implements InitializingBean {
                 return;
             }
 
-            // 2. 尝试解析从 Nacos 直接挂载为文件的独立配置 (通过 Environment 获取 Data ID 为键的值)
-            if (StringUtils.hasText(nacosDataId)) {
-                String nacosContent = environment.getProperty(nacosDataId);
-                if (StringUtils.hasText(nacosContent)) {
-                    List<FieldRule> rules = objectMapper.readValue(nacosContent, new TypeReference<List<FieldRule>>() {});
-                    for (FieldRule rule : rules) {
-                        classRulesMap.computeIfAbsent(rule.getClassName(), k -> new ArrayList<>()).add(rule);
-                        totalRules++;
-                    }
-                    log.info("从 Nacos 独立文件配置 ({}) 加载动态校验规则完成, 共 {} 条规则", nacosDataId, totalRules);
-                    return;
-                }
-            }
-
-            // 3. 最后退化到通过路径解析 (文件路径扫描)
+            // 否则退化到通过路径解析
             ResourcePatternResolver resolver = new PathMatchingResourcePatternResolver();
             Resource[] resources = resolver.getResources(rulesLocation);
 

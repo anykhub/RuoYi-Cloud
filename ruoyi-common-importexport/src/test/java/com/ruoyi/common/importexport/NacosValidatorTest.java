@@ -12,8 +12,8 @@ import org.springframework.boot.test.context.SpringBootTest;
 import java.util.List;
 
 @SpringBootTest(classes = TestApplication.class, properties = {
-        "import-rules.json=[{\"className\":\"com.ruoyi.common.importexport.example.ExampleDTO\",\"fieldName\":\"age\",\"required\":true,\"message\":\"Dynamic-Nacos-Injected\"}]",
-        "import-spel-rules.json=[{\"className\":\"com.ruoyi.common.importexport.example.ExampleDTO\",\"fieldName\":\"age\",\"expression\":\"age != null && age > 0\",\"message\":\"Spel-Nacos-Injected\"}]"
+        "importexport.rules.content=[{\"className\":\"com.ruoyi.common.importexport.example.ExampleDTO\",\"fieldName\":\"age\",\"required\":true,\"message\":\"Dynamic-Nacos-Injected\"}]",
+        "importexport.spel-rules.content=[{\"className\":\"com.ruoyi.common.importexport.example.ExampleDTO\",\"fieldName\":\"age\",\"expression\":\"age != null && age > 0\",\"message\":\"Spel-Nacos-Injected\"}]"
 })
 public class NacosValidatorTest {
 
