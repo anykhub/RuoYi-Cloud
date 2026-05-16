@@ -13,6 +13,9 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
+import com.alibaba.excel.ExcelWriter;
+import com.alibaba.excel.write.metadata.WriteSheet;
 
 /**
  * Excel 导入导出处理器 (基于 EasyExcel)
@@ -39,6 +42,37 @@ public class ExcelHandler<T> extends AbstractImportExportHandler<T> {
         } catch (Exception e) {
             log.error("Excel导出异常", e);
             throw new ImportExportException("Excel导出异常: " + e.getMessage(), e);
+        }
+    }
+
+    /**
+     * 多Sheet导出
+     *
+     * @param sheetDataMap 每个Sheet的名称和对应的数据列表
+     * @param clazz 目标类
+     * @param os 输出流
+     */
+    public void exportMultiSheet(Map<String, List<T>> sheetDataMap, Class<T> clazz, OutputStream os) {
+        if (sheetDataMap == null || sheetDataMap.isEmpty()) {
+            throw new IllegalArgumentException("导出数据不能为空");
+        }
+        ExcelWriter excelWriter = null;
+        try {
+            excelWriter = EasyExcel.write(os, clazz).build();
+            int sheetNo = 0;
+            for (Map.Entry<String, List<T>> entry : sheetDataMap.entrySet()) {
+                String sheetName = entry.getKey();
+                List<T> data = entry.getValue();
+                WriteSheet writeSheet = EasyExcel.writerSheet(sheetNo++, sheetName).build();
+                excelWriter.write(data, writeSheet);
+            }
+        } catch (Exception e) {
+            log.error("Excel多Sheet导出异常", e);
+            throw new ImportExportException("Excel多Sheet导出异常: " + e.getMessage(), e);
+        } finally {
+            if (excelWriter != null) {
+                excelWriter.finish();
+            }
         }
     }
 

@@ -7,7 +7,10 @@ import org.springframework.beans.factory.InitializingBean;
 import org.springframework.beans.BeanWrapper;
 import org.springframework.beans.NullValueInNestedPathException;
 import org.springframework.beans.PropertyAccessorFactory;
-import org.springframework.core.io.ClassPathResource;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.core.io.Resource;
+import org.springframework.core.io.support.PathMatchingResourcePatternResolver;
+import org.springframework.core.io.support.ResourcePatternResolver;
 import org.springframework.stereotype.Component;
 import org.springframework.util.StringUtils;
 
@@ -29,29 +32,43 @@ public class DynamicImportValidator implements InitializingBean {
 
     private final ObjectMapper objectMapper = new ObjectMapper();
 
+    @Value("${importexport.rules.location:classpath*:import-rules.json}")
+    private String rulesLocation;
+
     @Override
     public void afterPropertiesSet() {
         loadRules();
     }
 
     /**
-     * 从类路径下的 import-rules.json 加载规则
+     * 从配置的路径加载动态校验规则
      */
     public void loadRules() {
         try {
-            ClassPathResource resource = new ClassPathResource("import-rules.json");
-            if (resource.exists()) {
-                try (InputStream is = resource.getInputStream()) {
-                    List<FieldRule> rules = objectMapper.readValue(is, new TypeReference<List<FieldRule>>() {});
-                    classRulesMap.clear();
-                    for (FieldRule rule : rules) {
-                        classRulesMap.computeIfAbsent(rule.getClassName(), k -> new ArrayList<>()).add(rule);
-                    }
-                    log.info("加载动态校验规则完成, 共 {} 条规则", rules.size());
-                }
-            } else {
-                log.info("未找到动态校验规则配置文件: import-rules.json");
+            ResourcePatternResolver resolver = new PathMatchingResourcePatternResolver();
+            Resource[] resources = resolver.getResources(rulesLocation);
+            classRulesMap.clear();
+            int totalRules = 0;
+
+            if (resources.length == 0) {
+                log.info("未找到动态校验规则配置文件: {}", rulesLocation);
+                return;
             }
+
+            for (Resource resource : resources) {
+                if (resource.exists()) {
+                    try (InputStream is = resource.getInputStream()) {
+                        List<FieldRule> rules = objectMapper.readValue(is, new TypeReference<List<FieldRule>>() {});
+                        for (FieldRule rule : rules) {
+                            classRulesMap.computeIfAbsent(rule.getClassName(), k -> new ArrayList<>()).add(rule);
+                            totalRules++;
+                        }
+                    } catch (Exception ex) {
+                        log.error("解析校验规则文件失败: " + resource.getFilename(), ex);
+                    }
+                }
+            }
+            log.info("加载动态校验规则完成, 共从 {} 个文件加载 {} 条规则", resources.length, totalRules);
         } catch (Exception e) {
             log.error("加载动态校验规则失败", e);
         }
