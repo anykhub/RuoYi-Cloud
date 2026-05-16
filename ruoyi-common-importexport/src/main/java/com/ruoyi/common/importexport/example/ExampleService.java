@@ -5,6 +5,7 @@ import com.ruoyi.common.importexport.dto.ImportResult;
 import com.ruoyi.common.importexport.enums.FileTypeEnum;
 import com.ruoyi.common.importexport.factory.FileHandlerFactory;
 import com.ruoyi.common.importexport.validation.DynamicImportValidator;
+import com.ruoyi.common.importexport.validation.SpelImportValidator;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -34,6 +35,9 @@ public class ExampleService {
 
     @Autowired
     private DynamicImportValidator dynamicImportValidator;
+
+    @Autowired
+    private SpelImportValidator spelImportValidator;
 
     /**
      * 通用导出
@@ -70,7 +74,7 @@ public class ExampleService {
     /**
      * 通用导入 (带校验和错误收集)
      */
-    public ImportResult<ExampleDTO> importData(String fileType, InputStream is) {
+    public ImportResult<ExampleDTO> importData(String fileType, InputStream is, String engine) {
         ImportExportHandler<ExampleDTO> handler = fileHandlerFactory.getHandler(fileType);
 
         // 1. 获取原始数据
@@ -91,8 +95,14 @@ public class ExampleService {
                 }
             }
 
-            // 动态规则校验错误
-            List<String> dynamicErrors = dynamicImportValidator.validate(dto);
+            // 动态规则校验错误 (按指定引擎执行)
+            List<String> dynamicErrors;
+            if ("spel".equalsIgnoreCase(engine)) {
+                dynamicErrors = spelImportValidator.validate(dto);
+            } else {
+                dynamicErrors = dynamicImportValidator.validate(dto);
+            }
+
             if (!dynamicErrors.isEmpty()) {
                 for (String err : dynamicErrors) {
                     errorMsg.append(err).append("; ");

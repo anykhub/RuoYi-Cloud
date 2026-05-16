@@ -76,8 +76,10 @@ public class ExampleController {
      * 通用导入
      */
     @PostMapping("/import/{fileType}")
-    public Object importData(@PathVariable("fileType") String fileType, @RequestParam("file") MultipartFile file) throws Exception {
-        ImportResult<ExampleDTO> result = exampleService.importData(fileType, file.getInputStream());
+    public Object importData(@PathVariable("fileType") String fileType,
+                             @RequestParam("file") MultipartFile file,
+                             @RequestParam(value = "engine", required = false, defaultValue = "regex") String engine) throws Exception {
+        ImportResult<ExampleDTO> result = exampleService.importData(fileType, file.getInputStream(), engine);
 
         if (result.isSuccess()) {
             return "导入成功，共处理 " + result.getSuccessList().size() + " 条数据";

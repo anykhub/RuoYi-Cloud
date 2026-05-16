@@ -128,7 +128,8 @@ public class ImportExportTest {
 
         // 2. 测试从内存流导入 (实际生产中这里往往是 MultipartFile.getInputStream())
         InputStream is = new ByteArrayInputStream(fileBytes);
-        ImportResult<ExampleDTO> result = exampleService.importData(fileType, is);
+        // 这里为了测试兼容性和覆盖率，传入 "spel" 或默认 "regex" 均可
+        ImportResult<ExampleDTO> result = exampleService.importData(fileType, is, "regex");
 
         // 3. 验证导入结果
         // 因为我们放入了 3 条数据，其中 1 条故意缺少必填项，所以成功应该有 2 条，失败有 1 条

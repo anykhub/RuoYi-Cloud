@@ -1,0 +1,14 @@
+[
+  {
+    "className": "com.ruoyi.common.importexport.example.ExampleDTO",
+    "fieldName": "age",
+    "expression": "age >= 0 && age <= 199",
+    "message": "[SpEL] 年龄必须在0-199之间"
+  },
+  {
+    "className": "com.ruoyi.common.importexport.example.ExampleDTO",
+    "fieldName": "detail",
+    "expression": "detail != null && detail.description != null && detail.description.length() <= 100",
+    "message": "[SpEL] 详细描述不能为空且长度不能超过100"
+  }
+]
