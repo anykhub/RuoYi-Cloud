@@ -4,7 +4,9 @@ import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.InitializingBean;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.core.env.Environment;
 import org.springframework.core.io.Resource;
 import org.springframework.core.io.support.PathMatchingResourcePatternResolver;
 import org.springframework.core.io.support.ResourcePatternResolver;
@@ -45,13 +47,19 @@ public class SpelImportValidator implements InitializingBean {
     @Value("${importexport.spel-rules.content:}")
     private String rulesContent;
 
+    @Value("${importexport.spel-rules.nacos-data-id:import-spel-rules.json}")
+    private String nacosDataId;
+
+    @Autowired
+    private Environment environment;
+
     @Override
     public void afterPropertiesSet() {
         loadRules();
     }
 
     /**
-     * 加载 SpEL 校验规则
+     * 加载 SpEL 校验规则 (优先从直接配置的内容读取，否则从 Nacos DataID 读取，最后从文件路径读取)
      */
     public void loadRules() {
         classRulesMap.clear();
@@ -59,16 +67,32 @@ public class SpelImportValidator implements InitializingBean {
         int totalRules = 0;
 
         try {
+            // 1. 优先解析直接注入的 JSON 内容
             if (StringUtils.hasText(rulesContent)) {
                 List<ExpressionRule> rules = objectMapper.readValue(rulesContent, new TypeReference<List<ExpressionRule>>() {});
                 for (ExpressionRule rule : rules) {
                     classRulesMap.computeIfAbsent(rule.getClassName(), k -> new ArrayList<>()).add(rule);
                     totalRules++;
                 }
-                log.info("从直接配置的内容加载 SpEL 校验规则完成, 共 {} 条规则", totalRules);
+                log.info("从直接配置的内容 (importexport.spel-rules.content) 加载 SpEL 校验规则完成, 共 {} 条规则", totalRules);
                 return;
             }
 
+            // 2. 尝试解析从 Nacos 直接挂载为文件的独立配置
+            if (StringUtils.hasText(nacosDataId)) {
+                String nacosContent = environment.getProperty(nacosDataId);
+                if (StringUtils.hasText(nacosContent)) {
+                    List<ExpressionRule> rules = objectMapper.readValue(nacosContent, new TypeReference<List<ExpressionRule>>() {});
+                    for (ExpressionRule rule : rules) {
+                        classRulesMap.computeIfAbsent(rule.getClassName(), k -> new ArrayList<>()).add(rule);
+                        totalRules++;
+                    }
+                    log.info("从 Nacos 独立文件配置 ({}) 加载 SpEL 校验规则完成, 共 {} 条规则", nacosDataId, totalRules);
+                    return;
+                }
+            }
+
+            // 3. 最后退化到通过路径解析
             ResourcePatternResolver resolver = new PathMatchingResourcePatternResolver();
             Resource[] resources = resolver.getResources(rulesLocation);
 
