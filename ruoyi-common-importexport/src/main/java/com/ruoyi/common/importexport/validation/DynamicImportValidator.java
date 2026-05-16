@@ -35,23 +35,39 @@ public class DynamicImportValidator implements InitializingBean {
     @Value("${importexport.rules.location:classpath*:import-rules.json}")
     private String rulesLocation;
 
+    @Value("${importexport.rules.content:}")
+    private String rulesContent;
+
     @Override
     public void afterPropertiesSet() {
         loadRules();
     }
 
     /**
-     * 从配置的路径加载动态校验规则
+     * 加载动态校验规则 (优先从直接配置的内容读取，否则从文件路径读取)
      */
     public void loadRules() {
+        classRulesMap.clear();
+        int totalRules = 0;
+
         try {
+            // 优先解析直接注入的 JSON 内容 (例如从 Nacos 直传的内容)
+            if (StringUtils.hasText(rulesContent)) {
+                List<FieldRule> rules = objectMapper.readValue(rulesContent, new TypeReference<List<FieldRule>>() {});
+                for (FieldRule rule : rules) {
+                    classRulesMap.computeIfAbsent(rule.getClassName(), k -> new ArrayList<>()).add(rule);
+                    totalRules++;
+                }
+                log.info("从直接配置的内容 (importexport.rules.content) 加载动态校验规则完成, 共 {} 条规则", totalRules);
+                return;
+            }
+
+            // 否则退化到通过路径解析
             ResourcePatternResolver resolver = new PathMatchingResourcePatternResolver();
             Resource[] resources = resolver.getResources(rulesLocation);
-            classRulesMap.clear();
-            int totalRules = 0;
 
             if (resources.length == 0) {
-                log.info("未找到动态校验规则配置文件: {}", rulesLocation);
+                log.info("未配置直接规则内容，也未找到动态校验规则配置文件: {}", rulesLocation);
                 return;
             }
 
@@ -68,7 +84,7 @@ public class DynamicImportValidator implements InitializingBean {
                     }
                 }
             }
-            log.info("加载动态校验规则完成, 共从 {} 个文件加载 {} 条规则", resources.length, totalRules);
+            log.info("从 {} 个文件加载动态校验规则完成, 共 {} 条规则", resources.length, totalRules);
         } catch (Exception e) {
             log.error("加载动态校验规则失败", e);
         }
