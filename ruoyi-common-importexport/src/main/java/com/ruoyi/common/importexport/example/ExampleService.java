@@ -10,9 +10,12 @@ import org.springframework.stereotype.Service;
 
 import javax.validation.ConstraintViolation;
 import javax.validation.Validator;
+import com.ruoyi.common.importexport.handler.ExcelHandler;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 /**
@@ -38,6 +41,30 @@ public class ExampleService {
     public void exportData(String fileType, List<ExampleDTO> dataList, OutputStream os) {
         ImportExportHandler<ExampleDTO> handler = fileHandlerFactory.getHandler(fileType);
         handler.exportData(dataList, ExampleDTO.class, os);
+    }
+
+    /**
+     * 通用多Sheet导出
+     * <p>
+     * 兼容性接口：
+     * 如果是EXCEL格式，且Handler为ExcelHandler，则使用多Sheet导出。
+     * 对于其他格式，将所有Sheet的数据合并后统一导出。
+     * </p>
+     */
+    public void exportMultiSheetData(String fileType, Map<String, List<ExampleDTO>> sheetDataMap, OutputStream os) {
+        ImportExportHandler<ExampleDTO> handler = fileHandlerFactory.getHandler(fileType);
+
+        if (FileTypeEnum.EXCEL.name().equalsIgnoreCase(fileType) && handler instanceof ExcelHandler) {
+            ((ExcelHandler<ExampleDTO>) handler).exportMultiSheet(sheetDataMap, ExampleDTO.class, os);
+        } else {
+            List<ExampleDTO> mergedData = new ArrayList<>();
+            for (List<ExampleDTO> sheetData : sheetDataMap.values()) {
+                if (sheetData != null) {
+                    mergedData.addAll(sheetData);
+                }
+            }
+            handler.exportData(mergedData, ExampleDTO.class, os);
+        }
     }
 
     /**
