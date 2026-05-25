@@ -30,8 +30,15 @@ public class XmlHandler<T> extends AbstractImportExportHandler<T> {
 
     @Override
     protected void doExport(List<T> data, Class<T> clazz, OutputStream os) {
-        try {
-            xmlMapper.writerWithDefaultPrettyPrinter().writeValue(os, data);
+        try (com.fasterxml.jackson.dataformat.xml.ser.ToXmlGenerator xmlGen = (com.fasterxml.jackson.dataformat.xml.ser.ToXmlGenerator) xmlMapper.getFactory().createGenerator(os)) {
+            xmlGen.useDefaultPrettyPrinter();
+            xmlGen.setNextName(new javax.xml.namespace.QName("ArrayList"));
+            xmlGen.writeStartObject();
+            for (T item : data) {
+                xmlGen.writeFieldName("item");
+                xmlMapper.writeValue(xmlGen, item);
+            }
+            xmlGen.writeEndObject();
         } catch (Exception e) {
             log.error("XML导出异常", e);
             throw new ImportExportException("XML导出异常: " + e.getMessage(), e);

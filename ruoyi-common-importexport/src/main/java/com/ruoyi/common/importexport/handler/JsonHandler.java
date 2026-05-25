@@ -31,8 +31,10 @@ public class JsonHandler<T> extends AbstractImportExportHandler<T> {
 
     @Override
     protected void doExport(List<T> data, Class<T> clazz, OutputStream os) {
-        try {
-            objectMapper.writerWithDefaultPrettyPrinter().writeValue(os, data);
+        try (com.fasterxml.jackson.databind.SequenceWriter seqWriter = objectMapper.writerWithDefaultPrettyPrinter().writeValuesAsArray(os)) {
+            for (T item : data) {
+                seqWriter.write(item);
+            }
         } catch (Exception e) {
             log.error("JSON导出异常", e);
             throw new ImportExportException("JSON导出异常: " + e.getMessage(), e);
