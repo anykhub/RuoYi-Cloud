@@ -36,34 +36,12 @@ public class ExcelHandler<T> extends AbstractImportExportHandler<T> {
 
     @Override
     protected void doExport(List<T> data, Class<T> clazz, OutputStream os) {
-        ExcelWriter excelWriter = null;
         try {
-            excelWriter = EasyExcel.write(os, clazz).build();
-            WriteSheet writeSheet = EasyExcel.writerSheet("Sheet1").build();
-
-            // 分批写入并释放原列表内存，防止百万数据OOM
-            java.util.ListIterator<T> iterator = data.listIterator();
-            List<T> batch = new ArrayList<>(5000);
-            while (iterator.hasNext()) {
-                batch.add(iterator.next());
-                try {
-                    iterator.set(null);
-                } catch (UnsupportedOperationException e) {
-                    // 如果传入的是不可变集合，忽略异常
-                }
-
-                if (batch.size() >= 5000 || !iterator.hasNext()) {
-                    excelWriter.write(batch, writeSheet);
-                    batch.clear();
-                }
-            }
+            // EasyExcel 默认即为流式导出，防止 OOM
+            EasyExcel.write(os, clazz).sheet("Sheet1").doWrite(data);
         } catch (Exception e) {
             log.error("Excel导出异常", e);
             throw new ImportExportException("Excel导出异常: " + e.getMessage(), e);
-        } finally {
-            if (excelWriter != null) {
-                excelWriter.finish();
-            }
         }
     }
 
@@ -86,24 +64,7 @@ public class ExcelHandler<T> extends AbstractImportExportHandler<T> {
                 String sheetName = entry.getKey();
                 List<T> data = entry.getValue();
                 WriteSheet writeSheet = EasyExcel.writerSheet(sheetNo++, sheetName).build();
-
-                if (data != null) {
-                    java.util.ListIterator<T> iterator = data.listIterator();
-                    List<T> batch = new ArrayList<>(5000);
-                    while (iterator.hasNext()) {
-                        batch.add(iterator.next());
-                        try {
-                            iterator.set(null);
-                        } catch (UnsupportedOperationException e) {
-                            // 忽略不可变集合异常
-                        }
-
-                        if (batch.size() >= 5000 || !iterator.hasNext()) {
-                            excelWriter.write(batch, writeSheet);
-                            batch.clear();
-                        }
-                    }
-                }
+                excelWriter.write(data, writeSheet);
             }
         } catch (Exception e) {
             log.error("Excel多Sheet导出异常", e);

@@ -58,9 +58,7 @@ public class CsvHandler<T> extends AbstractImportExportHandler<T> {
             }
 
             try (CSVPrinter printer = new CSVPrinter(osw, CSVFormat.DEFAULT.withHeader(headers))) {
-                java.util.ListIterator<T> iterator = data.listIterator();
-                while (iterator.hasNext()) {
-                    T item = iterator.next();
+                for (T item : data) {
                     List<Object> record = new ArrayList<>();
                     for (Field field : fields) {
                         field.setAccessible(true);
@@ -71,11 +69,6 @@ public class CsvHandler<T> extends AbstractImportExportHandler<T> {
                         record.add(value != null ? value.toString() : "");
                     }
                     printer.printRecord(record);
-                    try {
-                        iterator.set(null); // 释放内存，防止百万数据OOM
-                    } catch (UnsupportedOperationException e) {
-                        // 如果传入的是不可变集合，忽略异常
-                    }
                 }
                 printer.flush();
             }
