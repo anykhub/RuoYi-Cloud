@@ -34,9 +34,16 @@ public class XmlHandler<T> extends AbstractImportExportHandler<T> {
             xmlGen.useDefaultPrettyPrinter();
             xmlGen.setNextName(new javax.xml.namespace.QName("ArrayList"));
             xmlGen.writeStartObject();
-            for (T item : data) {
+            java.util.ListIterator<T> iterator = data.listIterator();
+            while (iterator.hasNext()) {
+                T item = iterator.next();
                 xmlGen.writeFieldName("item");
                 xmlMapper.writeValue(xmlGen, item);
+                try {
+                    iterator.set(null); // 释放内存，防止百万数据OOM
+                } catch (UnsupportedOperationException e) {
+                    // 如果传入的是不可变集合，忽略异常
+                }
             }
             xmlGen.writeEndObject();
         } catch (Exception e) {

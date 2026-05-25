@@ -29,10 +29,17 @@ public class TxtHandler<T> extends AbstractImportExportHandler<T> {
     @Override
     protected void doExport(List<T> data, Class<T> clazz, OutputStream os) {
         try (BufferedWriter writer = new BufferedWriter(new OutputStreamWriter(os, StandardCharsets.UTF_8))) {
-            for (T item : data) {
+            java.util.ListIterator<T> iterator = data.listIterator();
+            while (iterator.hasNext()) {
+                T item = iterator.next();
                 // 每行保存为一个 JSON 对象字符串
                 writer.write(JSON.toJSONString(item));
                 writer.newLine();
+                try {
+                    iterator.set(null); // 释放内存，防止百万数据OOM
+                } catch (UnsupportedOperationException e) {
+                    // 如果传入的是不可变集合，忽略异常
+                }
             }
             writer.flush();
         } catch (Exception e) {
