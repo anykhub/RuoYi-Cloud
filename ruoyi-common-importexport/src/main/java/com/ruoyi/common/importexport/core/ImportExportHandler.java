@@ -38,6 +38,15 @@ public interface ImportExportHandler<T> {
     void exportData(List<T> data, Class<T> clazz, OutputStream os);
 
     /**
+     * 导出大数据 (分批导出)
+     *
+     * @param dataIterable 批次数据迭代器
+     * @param clazz 目标类
+     * @param os 输出流
+     */
+    void exportBigData(Iterable<List<T>> dataIterable, Class<T> clazz, OutputStream os);
+
+    /**
      * 导入数据
      *
      * @param is 输入流

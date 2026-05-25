@@ -45,6 +45,27 @@ public class ExcelHandler<T> extends AbstractImportExportHandler<T> {
         }
     }
 
+    @Override
+    protected void doExportBigData(Iterable<List<T>> dataIterable, Class<T> clazz, OutputStream os) {
+        ExcelWriter excelWriter = null;
+        try {
+            excelWriter = EasyExcel.write(os, clazz).build();
+            WriteSheet writeSheet = EasyExcel.writerSheet("Sheet1").build();
+            for (List<T> batch : dataIterable) {
+                if (batch != null && !batch.isEmpty()) {
+                    excelWriter.write(batch, writeSheet);
+                }
+            }
+        } catch (Exception e) {
+            log.error("Excel大数据分批导出异常", e);
+            throw new ImportExportException("Excel大数据分批导出异常: " + e.getMessage(), e);
+        } finally {
+            if (excelWriter != null) {
+                excelWriter.finish();
+            }
+        }
+    }
+
     /**
      * 多Sheet导出
      *

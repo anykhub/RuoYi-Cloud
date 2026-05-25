@@ -79,6 +79,51 @@ public class CsvHandler<T> extends AbstractImportExportHandler<T> {
     }
 
     @Override
+    protected void doExportBigData(Iterable<List<T>> dataIterable, Class<T> clazz, OutputStream os) {
+        try {
+            // 写 BOM
+            os.write(UTF8_BOM);
+            OutputStreamWriter osw = new OutputStreamWriter(os, StandardCharsets.UTF_8);
+
+            Field[] declaredFields = clazz.getDeclaredFields();
+            List<Field> fields = new ArrayList<>();
+            for (Field f : declaredFields) {
+                if (!java.lang.reflect.Modifier.isStatic(f.getModifiers()) && !java.lang.reflect.Modifier.isTransient(f.getModifiers())) {
+                    fields.add(f);
+                }
+            }
+
+            String[] headers = new String[fields.size()];
+            for (int i = 0; i < fields.size(); i++) {
+                headers[i] = fields.get(i).getName();
+            }
+
+            try (CSVPrinter printer = new CSVPrinter(osw, CSVFormat.DEFAULT.withHeader(headers))) {
+                for (List<T> batch : dataIterable) {
+                    if (batch != null) {
+                        for (T item : batch) {
+                            List<Object> record = new ArrayList<>();
+                            for (Field field : fields) {
+                                field.setAccessible(true);
+                                Object value = field.get(item);
+                                if (value != null && !(value instanceof String) && !(value instanceof Number) && !(value instanceof Boolean)) {
+                                    value = com.alibaba.fastjson2.JSON.toJSONString(value);
+                                }
+                                record.add(value != null ? value.toString() : "");
+                            }
+                            printer.printRecord(record);
+                        }
+                        printer.flush();
+                    }
+                }
+            }
+        } catch (Exception e) {
+            log.error("CSV大数据分批导出异常", e);
+            throw new ImportExportException("CSV大数据分批导出异常: " + e.getMessage(), e);
+        }
+    }
+
+    @Override
     protected List<T> doImport(InputStream is, Class<T> clazz) {
         List<T> resultList = new ArrayList<>();
         try {

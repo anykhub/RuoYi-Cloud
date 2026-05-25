@@ -45,6 +45,14 @@ public abstract class AbstractImportExportHandler<T> implements ImportExportHand
     }
 
     @Override
+    public void exportBigData(Iterable<List<T>> dataIterable, Class<T> clazz, OutputStream os) {
+        if (dataIterable == null) {
+            throw new IllegalArgumentException("导出数据迭代器不能为空");
+        }
+        doExportBigData(dataIterable, clazz, os);
+    }
+
+    @Override
     public List<T> importData(InputStream is, Class<T> clazz) {
         if (is == null) {
             throw new IllegalArgumentException("输入流不能为空");
@@ -60,6 +68,15 @@ public abstract class AbstractImportExportHandler<T> implements ImportExportHand
      * @param os 输出流
      */
     protected abstract void doExport(List<T> data, Class<T> clazz, OutputStream os);
+
+    /**
+     * 实际的大数据分批导出操作，由子类实现
+     *
+     * @param dataIterable 批次数据迭代器
+     * @param clazz 目标类
+     * @param os 输出流
+     */
+    protected abstract void doExportBigData(Iterable<List<T>> dataIterable, Class<T> clazz, OutputStream os);
 
     /**
      * 实际的导入操作，由子类实现
