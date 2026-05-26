@@ -43,8 +43,10 @@ public class ExampleController {
             exampleService.exportData(fileType, list, out);
         };
 
+        String extension = "excel".equalsIgnoreCase(fileType) ? "xlsx" : fileType.toLowerCase();
+
         return ResponseEntity.ok()
-                .header(HttpHeaders.CONTENT_DISPOSITION, "attachment;filename=export." + fileType.toLowerCase())
+                .header(HttpHeaders.CONTENT_DISPOSITION, "attachment;filename=export." + extension)
                 .contentType(MediaType.APPLICATION_OCTET_STREAM)
                 .body(stream);
     }
@@ -77,8 +79,10 @@ public class ExampleController {
             exampleService.exportMultiSheetData(fileType, sheetMap, out);
         };
 
+        String extension = "excel".equalsIgnoreCase(fileType) ? "xlsx" : fileType.toLowerCase();
+
         return ResponseEntity.ok()
-                .header(HttpHeaders.CONTENT_DISPOSITION, "attachment;filename=export-multi." + fileType.toLowerCase())
+                .header(HttpHeaders.CONTENT_DISPOSITION, "attachment;filename=export-multi." + extension)
                 .contentType(MediaType.APPLICATION_OCTET_STREAM)
                 .body(stream);
     }
