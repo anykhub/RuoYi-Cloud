@@ -2,10 +2,13 @@ package com.ruoyi.common.importexport.example;
 
 import com.ruoyi.common.importexport.dto.ImportResult;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
+import org.springframework.web.servlet.mvc.method.annotation.StreamingResponseBody;
 
-import javax.servlet.http.HttpServletResponse;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -27,7 +30,7 @@ public class ExampleController {
      * 通用导出
      */
     @GetMapping("/export/{fileType}")
-    public void exportData(@PathVariable("fileType") String fileType, HttpServletResponse response) throws Exception {
+    public ResponseEntity<StreamingResponseBody> exportData(@PathVariable("fileType") String fileType) {
         // 模拟数据
         List<ExampleDTO> list = new ArrayList<>();
         ExampleDTO dto1 = new ExampleDTO();
@@ -36,17 +39,21 @@ public class ExampleController {
         dto1.setAge(20);
         list.add(dto1);
 
-        response.setContentType("application/octet-stream;charset=UTF-8");
-        response.setHeader("Content-Disposition", "attachment;filename=export." + fileType.toLowerCase());
+        StreamingResponseBody stream = out -> {
+            exampleService.exportData(fileType, list, out);
+        };
 
-        exampleService.exportData(fileType, list, response.getOutputStream());
+        return ResponseEntity.ok()
+                .header(HttpHeaders.CONTENT_DISPOSITION, "attachment;filename=export." + fileType.toLowerCase())
+                .contentType(MediaType.APPLICATION_OCTET_STREAM)
+                .body(stream);
     }
 
     /**
      * 通用多Sheet/兼容导出
      */
     @GetMapping("/export-multi/{fileType}")
-    public void exportMultiSheetData(@PathVariable("fileType") String fileType, HttpServletResponse response) throws Exception {
+    public ResponseEntity<StreamingResponseBody> exportMultiSheetData(@PathVariable("fileType") String fileType) {
         // 模拟数据
         Map<String, List<ExampleDTO>> sheetMap = new LinkedHashMap<>();
 
@@ -66,10 +73,14 @@ public class ExampleController {
         list2.add(dto2);
         sheetMap.put("部门B", list2);
 
-        response.setContentType("application/octet-stream;charset=UTF-8");
-        response.setHeader("Content-Disposition", "attachment;filename=export-multi." + fileType.toLowerCase());
+        StreamingResponseBody stream = out -> {
+            exampleService.exportMultiSheetData(fileType, sheetMap, out);
+        };
 
-        exampleService.exportMultiSheetData(fileType, sheetMap, response.getOutputStream());
+        return ResponseEntity.ok()
+                .header(HttpHeaders.CONTENT_DISPOSITION, "attachment;filename=export-multi." + fileType.toLowerCase())
+                .contentType(MediaType.APPLICATION_OCTET_STREAM)
+                .body(stream);
     }
 
     /**
