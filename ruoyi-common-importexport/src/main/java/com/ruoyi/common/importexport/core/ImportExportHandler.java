@@ -46,4 +46,16 @@ public interface ImportExportHandler<T> {
      */
     List<T> importData(InputStream is, Class<T> clazz);
 
+    /**
+     * 导入数据 (分批处理)
+     *
+     * @param is 输入流
+     * @param clazz 目标类
+     * @param batchSize 批次大小
+     * @param batchConsumer 批次数据消费函数
+     */
+    default void importData(InputStream is, Class<T> clazz, int batchSize, java.util.function.Consumer<List<T>> batchConsumer) {
+        throw new UnsupportedOperationException("该处理器暂不支持分批导入");
+    }
+
 }

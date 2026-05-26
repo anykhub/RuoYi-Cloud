@@ -123,4 +123,51 @@ public class ExampleService {
 
         return result;
     }
+
+    /**
+     * 分批导入示例 (适合百万级数据)
+     *
+     * @param fileType 文件类型
+     * @param is 输入流
+     * @param batchSize 批次大小
+     * @return 导入统计结果 (只包含数量和异常信息，不包含成功列表对象，防止OOM)
+     */
+    public ImportResult<ExampleDTO> importDataInBatches(String fileType, InputStream is, int batchSize) {
+        ImportExportHandler<ExampleDTO> handler = fileHandlerFactory.getHandler(fileType);
+        ImportResult<ExampleDTO> result = new ImportResult<>();
+
+        java.util.concurrent.atomic.AtomicInteger totalCount = new java.util.concurrent.atomic.AtomicInteger(0);
+        java.util.concurrent.atomic.AtomicInteger successCount = new java.util.concurrent.atomic.AtomicInteger(0);
+
+        handler.importData(is, ExampleDTO.class, batchSize, batchList -> {
+            // 模拟批量插入数据库的操作，这里只做校验和计数
+            int currentBatchIndex = totalCount.get();
+            for (int i = 0; i < batchList.size(); i++) {
+                ExampleDTO dto = batchList.get(i);
+                Set<ConstraintViolation<ExampleDTO>> violations = validator.validate(dto);
+
+                if (!violations.isEmpty()) {
+                    StringBuilder errorMsg = new StringBuilder();
+                    for (ConstraintViolation<ExampleDTO> violation : violations) {
+                        errorMsg.append(violation.getMessage()).append("; ");
+                    }
+                    result.addError("第 " + (currentBatchIndex + i + 1) + " 行数据校验失败: " + errorMsg.toString());
+                } else {
+                    // 这里可以调用 mybatis-plus 的 saveBatch
+                    successCount.incrementAndGet();
+                }
+            }
+            totalCount.addAndGet(batchList.size());
+            System.out.println("成功处理批次数据，当前共处理: " + totalCount.get() + " 条");
+        });
+
+        // 由于结果对象不保存具体成功数据，这里通过修改提示信息或专门DTO返回，为简单起见，利用错误消息或者另外定义属性
+        if (result.getErrorMessages() == null || result.getErrorMessages().isEmpty()) {
+            result.addError("全部导入成功，共处理: " + successCount.get() + " 条");
+        } else {
+            result.addError("部分或全部导入失败，总数: " + totalCount.get() + ", 成功: " + successCount.get() + "。详细错误见其他列表。");
+        }
+
+        return result;
+    }
 }

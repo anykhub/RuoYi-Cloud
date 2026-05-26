@@ -52,6 +52,20 @@ public abstract class AbstractImportExportHandler<T> implements ImportExportHand
         return doImport(is, clazz);
     }
 
+    @Override
+    public void importData(InputStream is, Class<T> clazz, int batchSize, java.util.function.Consumer<List<T>> batchConsumer) {
+        if (is == null) {
+            throw new IllegalArgumentException("输入流不能为空");
+        }
+        if (batchSize <= 0) {
+            throw new IllegalArgumentException("批次大小必须大于0");
+        }
+        if (batchConsumer == null) {
+            throw new IllegalArgumentException("消费函数不能为空");
+        }
+        doImport(is, clazz, batchSize, batchConsumer);
+    }
+
     /**
      * 实际的导出操作，由子类实现
      *
@@ -69,4 +83,25 @@ public abstract class AbstractImportExportHandler<T> implements ImportExportHand
      * @return 导入的数据列表
      */
     protected abstract List<T> doImport(InputStream is, Class<T> clazz);
+
+    /**
+     * 实际的分批导入操作。
+     * 默认实现会退化为一次性读取全部数据后再进行分批回调，子类应当尽可能覆盖此方法实现真正的流式读取。
+     *
+     * @param is 输入流
+     * @param clazz 目标类
+     * @param batchSize 批次大小
+     * @param batchConsumer 批次数据消费函数
+     */
+    protected void doImport(InputStream is, Class<T> clazz, int batchSize, java.util.function.Consumer<List<T>> batchConsumer) {
+        List<T> allData = doImport(is, clazz);
+        if (allData == null || allData.isEmpty()) {
+            return;
+        }
+        int total = allData.size();
+        for (int i = 0; i < total; i += batchSize) {
+            int end = Math.min(i + batchSize, total);
+            batchConsumer.accept(allData.subList(i, end));
+        }
+    }
 }

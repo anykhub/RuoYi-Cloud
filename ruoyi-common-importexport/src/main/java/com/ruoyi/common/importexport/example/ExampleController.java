@@ -102,4 +102,17 @@ public class ExampleController {
             return "导入存在错误: " + result.getErrorMessages();
         }
     }
+
+    /**
+     * 分批导入 (适合大文件)
+     */
+    @PostMapping("/import-batch/{fileType}")
+    public Object importBatchData(@PathVariable("fileType") String fileType,
+                                  @RequestParam("file") MultipartFile file,
+                                  @RequestParam(value = "batchSize", required = false, defaultValue = "1000") Integer batchSize) throws Exception {
+        ImportResult<ExampleDTO> result = exampleService.importDataInBatches(fileType, file.getInputStream(), batchSize);
+
+        // 返回包含统计信息和潜在错误信息的结果
+        return result.getErrorMessages();
+    }
 }
