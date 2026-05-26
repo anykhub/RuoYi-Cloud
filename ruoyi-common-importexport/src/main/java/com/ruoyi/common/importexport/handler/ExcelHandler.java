@@ -98,4 +98,33 @@ public class ExcelHandler<T> extends AbstractImportExportHandler<T> {
         }
         return resultList;
     }
+
+    @Override
+    protected void doImport(InputStream is, Class<T> clazz, int batchSize, java.util.function.Consumer<List<T>> batchConsumer) {
+        try {
+            EasyExcel.read(is, clazz, new ReadListener<T>() {
+                private List<T> cachedDataList = new ArrayList<>(batchSize);
+
+                @Override
+                public void invoke(T data, AnalysisContext context) {
+                    cachedDataList.add(data);
+                    if (cachedDataList.size() >= batchSize) {
+                        batchConsumer.accept(cachedDataList);
+                        cachedDataList = new ArrayList<>(batchSize);
+                    }
+                }
+
+                @Override
+                public void doAfterAllAnalysed(AnalysisContext context) {
+                    if (!cachedDataList.isEmpty()) {
+                        batchConsumer.accept(cachedDataList);
+                    }
+                    log.info("Excel分批读取完成");
+                }
+            }).sheet().doRead();
+        } catch (Exception e) {
+            log.error("Excel分批导入异常", e);
+            throw new ImportExportException("Excel分批导入异常: " + e.getMessage(), e);
+        }
+    }
 }

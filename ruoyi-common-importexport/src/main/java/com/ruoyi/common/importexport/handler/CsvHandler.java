@@ -125,4 +125,60 @@ public class CsvHandler<T> extends AbstractImportExportHandler<T> {
         }
         return resultList;
     }
+
+    @Override
+    protected void doImport(InputStream is, Class<T> clazz, int batchSize, java.util.function.Consumer<List<T>> batchConsumer) {
+        try {
+            InputStreamReader isr = new InputStreamReader(is, StandardCharsets.UTF_8);
+            CSVParser parser = CSVFormat.DEFAULT.withFirstRecordAsHeader().parse(isr);
+            Field[] declaredFields = clazz.getDeclaredFields();
+            List<Field> fields = new ArrayList<>();
+            for (Field f : declaredFields) {
+                if (!java.lang.reflect.Modifier.isStatic(f.getModifiers()) && !java.lang.reflect.Modifier.isTransient(f.getModifiers())) {
+                    fields.add(f);
+                }
+            }
+
+            List<T> cachedDataList = new ArrayList<>(batchSize);
+            for (CSVRecord record : parser) {
+                T obj = clazz.getDeclaredConstructor().newInstance();
+                for (Field field : fields) {
+                    field.setAccessible(true);
+                    String headerName = field.getName();
+                    if (record.isMapped(headerName)) {
+                        String valueStr = record.get(headerName);
+                        if (valueStr != null && !valueStr.trim().isEmpty()) {
+                            // 简单类型转换
+                            if (field.getType() == String.class) {
+                                field.set(obj, valueStr);
+                            } else if (field.getType() == Integer.class || field.getType() == int.class) {
+                                field.set(obj, Integer.parseInt(valueStr));
+                            } else if (field.getType() == Long.class || field.getType() == long.class) {
+                                field.set(obj, Long.parseLong(valueStr));
+                            } else if (field.getType() == Double.class || field.getType() == double.class) {
+                                field.set(obj, Double.parseDouble(valueStr));
+                            } else if (field.getType() == Boolean.class || field.getType() == boolean.class) {
+                                field.set(obj, Boolean.parseBoolean(valueStr));
+                            } else {
+                                field.set(obj, com.alibaba.fastjson2.JSON.parseObject(valueStr, field.getType()));
+                            }
+                        }
+                    }
+                }
+                cachedDataList.add(obj);
+
+                if (cachedDataList.size() >= batchSize) {
+                    batchConsumer.accept(cachedDataList);
+                    cachedDataList = new ArrayList<>(batchSize);
+                }
+            }
+            if (!cachedDataList.isEmpty()) {
+                batchConsumer.accept(cachedDataList);
+            }
+            log.info("CSV分批读取完成");
+        } catch (Exception e) {
+            log.error("CSV分批导入异常", e);
+            throw new ImportExportException("CSV分批导入异常: " + e.getMessage(), e);
+        }
+    }
 }
