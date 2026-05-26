@@ -53,6 +53,47 @@ public abstract class AbstractImportExportHandler<T> implements ImportExportHand
     }
 
     @Override
+    public void exportBigData(java.util.function.Function<Integer, List<T>> pageDataLoader, Class<T> clazz, OutputStream os) {
+        if (pageDataLoader == null) {
+            throw new IllegalArgumentException("分页查询函数不能为空");
+        }
+
+        Iterable<List<T>> iterable = () -> new java.util.Iterator<List<T>>() {
+            private int pageNum = 1;
+            private List<T> nextBatch = null;
+            private boolean isFinished = false;
+
+            @Override
+            public boolean hasNext() {
+                if (isFinished) {
+                    return false;
+                }
+                if (nextBatch != null) {
+                    return true;
+                }
+                nextBatch = pageDataLoader.apply(pageNum++);
+                if (nextBatch == null || nextBatch.isEmpty()) {
+                    isFinished = true;
+                    return false;
+                }
+                return true;
+            }
+
+            @Override
+            public List<T> next() {
+                if (!hasNext()) {
+                    throw new java.util.NoSuchElementException();
+                }
+                List<T> result = nextBatch;
+                nextBatch = null; // consume it
+                return result;
+            }
+        };
+
+        doExportBigData(iterable, clazz, os);
+    }
+
+    @Override
     public List<T> importData(InputStream is, Class<T> clazz) {
         if (is == null) {
             throw new IllegalArgumentException("输入流不能为空");

@@ -104,6 +104,54 @@ public class ExcelHandler<T> extends AbstractImportExportHandler<T> {
     }
 
     /**
+     * 大数据导出，基于函数式接口分页查询，超过最大行数分多个Sheet
+     *
+     * @param pageDataLoader 分页查询函数 (输入页码，返回该页数据列表。返回空列表或null时停止)
+     * @param clazz 目标类
+     * @param os 输出流
+     * @param maxRowsPerSheet 每个Sheet的最大行数
+     */
+    public void exportBigDataSplitSheet(java.util.function.Function<Integer, List<T>> pageDataLoader, Class<T> clazz, OutputStream os, int maxRowsPerSheet) {
+        if (pageDataLoader == null) {
+            throw new IllegalArgumentException("分页查询函数不能为空");
+        }
+
+        Iterable<List<T>> iterable = () -> new java.util.Iterator<List<T>>() {
+            private int pageNum = 1;
+            private List<T> nextBatch = null;
+            private boolean isFinished = false;
+
+            @Override
+            public boolean hasNext() {
+                if (isFinished) {
+                    return false;
+                }
+                if (nextBatch != null) {
+                    return true;
+                }
+                nextBatch = pageDataLoader.apply(pageNum++);
+                if (nextBatch == null || nextBatch.isEmpty()) {
+                    isFinished = true;
+                    return false;
+                }
+                return true;
+            }
+
+            @Override
+            public List<T> next() {
+                if (!hasNext()) {
+                    throw new java.util.NoSuchElementException();
+                }
+                List<T> result = nextBatch;
+                nextBatch = null;
+                return result;
+            }
+        };
+
+        exportBigDataSplitSheet(iterable, clazz, os, maxRowsPerSheet);
+    }
+
+    /**
      * 大数据导出，超过最大行数分多个Sheet
      *
      * @param dataIterable 批次数据迭代器
