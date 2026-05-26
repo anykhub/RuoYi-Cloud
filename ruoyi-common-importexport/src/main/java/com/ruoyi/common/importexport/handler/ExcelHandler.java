@@ -67,6 +67,98 @@ public class ExcelHandler<T> extends AbstractImportExportHandler<T> {
     }
 
     /**
+     * 导出数据，超过最大行数分多个Sheet
+     *
+     * @param data 要导出的数据
+     * @param clazz 目标类
+     * @param os 输出流
+     * @param maxRowsPerSheet 每个Sheet的最大行数
+     */
+    public void exportSplitSheet(List<T> data, Class<T> clazz, OutputStream os, int maxRowsPerSheet) {
+        if (data == null || data.isEmpty()) {
+            throw new IllegalArgumentException("导出数据不能为空");
+        }
+        if (maxRowsPerSheet <= 0) {
+            throw new IllegalArgumentException("每页最大行数必须大于0");
+        }
+        ExcelWriter excelWriter = null;
+        try {
+            excelWriter = EasyExcel.write(os, clazz).build();
+            int totalSize = data.size();
+            int sheetNo = 0;
+            for (int i = 0; i < totalSize; i += maxRowsPerSheet) {
+                int toIndex = Math.min(i + maxRowsPerSheet, totalSize);
+                List<T> subList = data.subList(i, toIndex);
+                WriteSheet writeSheet = EasyExcel.writerSheet(sheetNo, "Sheet" + (sheetNo + 1)).build();
+                excelWriter.write(subList, writeSheet);
+                sheetNo++;
+            }
+        } catch (Exception e) {
+            log.error("Excel分Sheet导出异常", e);
+            throw new ImportExportException("Excel分Sheet导出异常: " + e.getMessage(), e);
+        } finally {
+            if (excelWriter != null) {
+                excelWriter.finish();
+            }
+        }
+    }
+
+    /**
+     * 大数据导出，超过最大行数分多个Sheet
+     *
+     * @param dataIterable 批次数据迭代器
+     * @param clazz 目标类
+     * @param os 输出流
+     * @param maxRowsPerSheet 每个Sheet的最大行数
+     */
+    public void exportBigDataSplitSheet(Iterable<List<T>> dataIterable, Class<T> clazz, OutputStream os, int maxRowsPerSheet) {
+        if (dataIterable == null) {
+            throw new IllegalArgumentException("导出数据迭代器不能为空");
+        }
+        if (maxRowsPerSheet <= 0) {
+            throw new IllegalArgumentException("每页最大行数必须大于0");
+        }
+        ExcelWriter excelWriter = null;
+        try {
+            excelWriter = EasyExcel.write(os, clazz).build();
+            int sheetNo = 0;
+            int currentRowCount = 0;
+            WriteSheet writeSheet = EasyExcel.writerSheet(sheetNo, "Sheet" + (sheetNo + 1)).build();
+
+            for (List<T> batch : dataIterable) {
+                if (batch != null && !batch.isEmpty()) {
+                    int batchSize = batch.size();
+                    int batchIndex = 0;
+
+                    while (batchIndex < batchSize) {
+                        int remainingCapacity = maxRowsPerSheet - currentRowCount;
+                        int elementsToWrite = Math.min(remainingCapacity, batchSize - batchIndex);
+
+                        List<T> subList = batch.subList(batchIndex, batchIndex + elementsToWrite);
+                        excelWriter.write(subList, writeSheet);
+
+                        currentRowCount += elementsToWrite;
+                        batchIndex += elementsToWrite;
+
+                        if (currentRowCount >= maxRowsPerSheet) {
+                            sheetNo++;
+                            writeSheet = EasyExcel.writerSheet(sheetNo, "Sheet" + (sheetNo + 1)).build();
+                            currentRowCount = 0;
+                        }
+                    }
+                }
+            }
+        } catch (Exception e) {
+            log.error("Excel大数据分Sheet导出异常", e);
+            throw new ImportExportException("Excel大数据分Sheet导出异常: " + e.getMessage(), e);
+        } finally {
+            if (excelWriter != null) {
+                excelWriter.finish();
+            }
+        }
+    }
+
+    /**
      * 多Sheet导出
      *
      * @param sheetDataMap 每个Sheet的名称和对应的数据列表
@@ -101,7 +193,7 @@ public class ExcelHandler<T> extends AbstractImportExportHandler<T> {
     protected List<T> doImport(InputStream is, Class<T> clazz) {
         List<T> resultList = new ArrayList<>();
         try {
-            // 使用 EasyExcel 流式读取，防止 OOM
+            // 使用 EasyExcel 流式读取，支持读取所有Sheet，防止 OOM
             EasyExcel.read(is, clazz, new ReadListener<T>() {
                 @Override
                 public void invoke(T data, AnalysisContext context) {
@@ -110,9 +202,10 @@ public class ExcelHandler<T> extends AbstractImportExportHandler<T> {
 
                 @Override
                 public void doAfterAllAnalysed(AnalysisContext context) {
-                    log.info("Excel读取完成，共解析 {} 条数据", resultList.size());
+                    log.info("Excel读取完成，当前Sheet解析完成");
                 }
-            }).sheet().doRead();
+            }).doReadAll();
+            log.info("Excel所有Sheet读取完成，共解析 {} 条数据", resultList.size());
         } catch (Exception e) {
             log.error("Excel导入异常", e);
             throw new ImportExportException("Excel导入异常: " + e.getMessage(), e);
