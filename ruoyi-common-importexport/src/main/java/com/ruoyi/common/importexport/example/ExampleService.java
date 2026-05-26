@@ -48,6 +48,14 @@ public class ExampleService {
     }
 
     /**
+     * 通用大数据导出 (基于函数式接口分页查询)
+     */
+    public void exportBigData(String fileType, java.util.function.Function<Integer, List<ExampleDTO>> pageDataLoader, OutputStream os) {
+        ImportExportHandler<ExampleDTO> handler = fileHandlerFactory.getHandler(fileType);
+        handler.exportBigData(pageDataLoader, ExampleDTO.class, os);
+    }
+
+    /**
      * 通用多Sheet导出
      * <p>
      * 兼容性接口：

@@ -43,6 +43,42 @@ public class ExampleController {
     }
 
     /**
+     * 大数据量导出 Demo (使用函数式接口分页查询)
+     */
+    @GetMapping("/export-big-data/{fileType}")
+    public void exportBigData(@PathVariable("fileType") String fileType, HttpServletResponse response) throws Exception {
+        response.setContentType("application/octet-stream;charset=UTF-8");
+        response.setHeader("Content-Disposition", "attachment;filename=export-big-data." + fileType.toLowerCase());
+
+        // 模拟业务分页查询逻辑 (实际项目中这里应该是 service.selectPage(...) 或 mapper.selectList(...))
+        int totalRecords = 55; // 假设总共有55条数据
+        int pageSize = 10;     // 每页查询10条
+
+        java.util.function.Function<Integer, List<ExampleDTO>> pageDataLoader = pageNum -> {
+            int start = (pageNum - 1) * pageSize;
+            if (start >= totalRecords) {
+                return null; // 返回null或空集合表示数据读取完毕
+            }
+            int end = Math.min(start + pageSize, totalRecords);
+
+            List<ExampleDTO> list = new ArrayList<>();
+            for (int i = start; i < end; i++) {
+                ExampleDTO dto = new ExampleDTO();
+                dto.setId((long) (i + 1));
+                dto.setUsername("User_" + (i + 1));
+                dto.setAge(20 + (i % 30)); // 随机年龄
+                dto.setRemark("第 " + pageNum + " 页的数据");
+                list.add(dto);
+            }
+            // 模拟数据库查询耗时
+            try { Thread.sleep(50); } catch (InterruptedException ignored) {}
+            return list;
+        };
+
+        exampleService.exportBigData(fileType, pageDataLoader, response.getOutputStream());
+    }
+
+    /**
      * 通用多Sheet/兼容导出
      */
     @GetMapping("/export-multi/{fileType}")
