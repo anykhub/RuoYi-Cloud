@@ -1,0 +1,212 @@
+[INFO] Scanning for projects...
+[WARNING]
+[WARNING] Some problems were encountered while building the effective model for com.ruoyi:ruoyi-auth:jar:3.6.4
+[WARNING] 'build.plugins.plugin.version' for org.apache.maven.plugins:maven-compiler-plugin is missing. @ com.ruoyi:ruoyi:3.6.4, /app/pom.xml, line 232, column 21
+[WARNING]
+[WARNING] Some problems were encountered while building the effective model for com.ruoyi:ruoyi-gateway:jar:3.6.4
+[WARNING] 'build.plugins.plugin.version' for org.apache.maven.plugins:maven-compiler-plugin is missing. @ com.ruoyi:ruoyi:3.6.4, /app/pom.xml, line 232, column 21
+[WARNING]
+[WARNING] Some problems were encountered while building the effective model for com.ruoyi:ruoyi-visual-monitor:jar:3.6.4
+[WARNING] 'build.plugins.plugin.version' for org.apache.maven.plugins:maven-compiler-plugin is missing. @ com.ruoyi:ruoyi:3.6.4, /app/pom.xml, line 232, column 21
+[WARNING]
+[WARNING] Some problems were encountered while building the effective model for com.ruoyi:ruoyi-visual:pom:3.6.4
+[WARNING] 'build.plugins.plugin.version' for org.apache.maven.plugins:maven-compiler-plugin is missing. @ com.ruoyi:ruoyi:3.6.4, /app/pom.xml, line 232, column 21
+[WARNING]
+[WARNING] Some problems were encountered while building the effective model for com.ruoyi:ruoyi-modules-system:jar:3.6.4
+[WARNING] 'build.plugins.plugin.version' for org.apache.maven.plugins:maven-compiler-plugin is missing. @ com.ruoyi:ruoyi:3.6.4, /app/pom.xml, line 232, column 21
+[WARNING]
+[WARNING] Some problems were encountered while building the effective model for com.ruoyi:ruoyi-modules-gen:jar:3.6.4
+[WARNING] 'build.plugins.plugin.version' for org.apache.maven.plugins:maven-compiler-plugin is missing. @ com.ruoyi:ruoyi:3.6.4, /app/pom.xml, line 232, column 21
+[WARNING]
+[WARNING] Some problems were encountered while building the effective model for com.ruoyi:ruoyi-modules-job:jar:3.6.4
+[WARNING] 'build.plugins.plugin.version' for org.apache.maven.plugins:maven-compiler-plugin is missing. @ com.ruoyi:ruoyi:3.6.4, /app/pom.xml, line 232, column 21
+[WARNING]
+[WARNING] Some problems were encountered while building the effective model for com.ruoyi:ruoyi-modules-file:jar:3.6.4
+[WARNING] 'build.plugins.plugin.version' for org.apache.maven.plugins:maven-compiler-plugin is missing. @ com.ruoyi:ruoyi:3.6.4, /app/pom.xml, line 232, column 21
+[WARNING]
+[WARNING] Some problems were encountered while building the effective model for com.ruoyi:ruoyi-modules:pom:3.6.4
+[WARNING] 'build.plugins.plugin.version' for org.apache.maven.plugins:maven-compiler-plugin is missing. @ com.ruoyi:ruoyi:3.6.4, /app/pom.xml, line 232, column 21
+[WARNING]
+[WARNING] Some problems were encountered while building the effective model for com.ruoyi:ruoyi-api-system:jar:3.6.4
+[WARNING] 'build.plugins.plugin.version' for org.apache.maven.plugins:maven-compiler-plugin is missing. @ com.ruoyi:ruoyi:3.6.4, /app/pom.xml, line 232, column 21
+[WARNING]
+[WARNING] Some problems were encountered while building the effective model for com.ruoyi:ruoyi-api:pom:3.6.4
+[WARNING] 'build.plugins.plugin.version' for org.apache.maven.plugins:maven-compiler-plugin is missing. @ com.ruoyi:ruoyi:3.6.4, /app/pom.xml, line 232, column 21
+[WARNING]
+[WARNING] Some problems were encountered while building the effective model for com.ruoyi:ruoyi-common-log:jar:3.6.4
+[WARNING] 'build.plugins.plugin.version' for org.apache.maven.plugins:maven-compiler-plugin is missing. @ com.ruoyi:ruoyi:3.6.4, /app/pom.xml, line 232, column 21
+[WARNING]
+[WARNING] Some problems were encountered while building the effective model for com.ruoyi:ruoyi-common-core:jar:3.6.4
+[WARNING] 'build.plugins.plugin.version' for org.apache.maven.plugins:maven-compiler-plugin is missing. @ com.ruoyi:ruoyi:3.6.4, /app/pom.xml, line 232, column 21
+[WARNING]
+[WARNING] Some problems were encountered while building the effective model for com.ruoyi:ruoyi-common-redis:jar:3.6.4
+[WARNING] 'build.plugins.plugin.version' for org.apache.maven.plugins:maven-compiler-plugin is missing. @ com.ruoyi:ruoyi:3.6.4, /app/pom.xml, line 232, column 21
+[WARNING]
+[WARNING] Some problems were encountered while building the effective model for com.ruoyi:ruoyi-common-seata:jar:3.6.4
+[WARNING] 'build.plugins.plugin.version' for org.apache.maven.plugins:maven-compiler-plugin is missing. @ com.ruoyi:ruoyi:3.6.4, /app/pom.xml, line 232, column 21
+[WARNING]
+[WARNING] Some problems were encountered while building the effective model for com.ruoyi:ruoyi-common-swagger:jar:3.6.4
+[WARNING] 'build.plugins.plugin.version' for org.apache.maven.plugins:maven-compiler-plugin is missing. @ com.ruoyi:ruoyi:3.6.4, /app/pom.xml, line 232, column 21
+[WARNING]
+[WARNING] Some problems were encountered while building the effective model for com.ruoyi:ruoyi-common-security:jar:3.6.4
+[WARNING] 'build.plugins.plugin.version' for org.apache.maven.plugins:maven-compiler-plugin is missing. @ com.ruoyi:ruoyi:3.6.4, /app/pom.xml, line 232, column 21
+[WARNING]
+[WARNING] Some problems were encountered while building the effective model for com.ruoyi:ruoyi-common-datascope:jar:3.6.4
+[WARNING] 'build.plugins.plugin.version' for org.apache.maven.plugins:maven-compiler-plugin is missing. @ com.ruoyi:ruoyi:3.6.4, /app/pom.xml, line 232, column 21
+[WARNING]
+[WARNING] Some problems were encountered while building the effective model for com.ruoyi:ruoyi-common-datasource:jar:3.6.4
+[WARNING] 'build.plugins.plugin.version' for org.apache.maven.plugins:maven-compiler-plugin is missing. @ com.ruoyi:ruoyi:3.6.4, /app/pom.xml, line 232, column 21
+[WARNING]
+[WARNING] Some problems were encountered while building the effective model for com.ruoyi:ruoyi-common:pom:3.6.4
+[WARNING] 'build.plugins.plugin.version' for org.apache.maven.plugins:maven-compiler-plugin is missing. @ com.ruoyi:ruoyi:3.6.4, /app/pom.xml, line 232, column 21
+[WARNING]
+[WARNING] Some problems were encountered while building the effective model for com.ruoyi:ruoyi:pom:3.6.4
+[WARNING] 'build.plugins.plugin.version' for org.apache.maven.plugins:maven-compiler-plugin is missing. @ line 232, column 21
+[WARNING]
+[WARNING] It is highly recommended to fix these problems because they threaten the stability of your build.
+[WARNING]
+[WARNING] For this reason, future Maven versions might no longer support building such malformed projects.
+[WARNING]
+[INFO] ------------------------------------------------------------------------
+[INFO] Reactor Build Order:
+[INFO]
+[INFO] ruoyi                                                              [pom]
+[INFO] ruoyi-common                                                       [pom]
+[INFO] ruoyi-common-core                                                  [jar]
+[INFO] ruoyi-api                                                          [pom]
+[INFO] ruoyi-api-system                                                   [jar]
+[INFO] ruoyi-common-swagger                                               [jar]
+[INFO] ruoyi-modules                                                      [pom]
+[INFO] ruoyi-modules-file                                                 [jar]
+[INFO]
+[INFO] --------------------------< com.ruoyi:ruoyi >---------------------------
+[INFO] Building ruoyi 3.6.4                                               [1/8]
+[INFO]   from pom.xml
+[INFO] --------------------------------[ pom ]---------------------------------
+[WARNING] Ignoring incompatible plugin version 4.0.0-beta-4:
+The plugin org.apache.maven.plugins:maven-compiler-plugin:4.0.0-beta-4 has unmet prerequisites:
+	Required Maven version 4.0.0-rc-4 is not met by current version 3.9.12
+[INFO] Latest version of plugin org.apache.maven.plugins:maven-compiler-plugin failed compatibility check
+[INFO] Looking for compatible RELEASE version of plugin org.apache.maven.plugins:maven-compiler-plugin
+[WARNING] Ignoring incompatible plugin version 4.0.0-beta-3:
+The plugin org.apache.maven.plugins:maven-compiler-plugin:4.0.0-beta-3 has unmet prerequisites:
+	Required Maven version 4.0.0-rc-4 is not met by current version 3.9.12
+[WARNING] Ignoring incompatible plugin version 4.0.0-beta-2:
+The plugin org.apache.maven.plugins:maven-compiler-plugin:4.0.0-beta-2 has unmet prerequisites:
+	Required Maven version 4.0.0-rc-2 is not met by current version 3.9.12
+[WARNING] Ignoring incompatible plugin version 4.0.0-beta-1:
+The plugin org.apache.maven.plugins:maven-compiler-plugin:4.0.0-beta-1 has unmet prerequisites:
+	Required Maven version 4.0.0-beta-3 is not met by current version 3.9.12
+[INFO] Selected plugin org.apache.maven.plugins:maven-compiler-plugin:3.15.0
+[INFO]
+[INFO] -----------------------< com.ruoyi:ruoyi-common >-----------------------
+[INFO] Building ruoyi-common 3.6.4                                        [2/8]
+[INFO]   from ruoyi-common/pom.xml
+[INFO] --------------------------------[ pom ]---------------------------------
+[INFO]
+[INFO] --------------------< com.ruoyi:ruoyi-common-core >---------------------
+[INFO] Building ruoyi-common-core 3.6.4                                   [3/8]
+[INFO]   from ruoyi-common/ruoyi-common-core/pom.xml
+[INFO] --------------------------------[ jar ]---------------------------------
+[INFO]
+[INFO] --- resources:3.3.1:resources (default-resources) @ ruoyi-common-core ---
+[INFO] Copying 1 resource from src/main/resources to target/classes
+[INFO]
+[INFO] --- compiler:3.13.0:compile (default-compile) @ ruoyi-common-core ---
+[INFO] Nothing to compile - all classes are up to date.
+[INFO]
+[INFO] --- resources:3.3.1:testResources (default-testResources) @ ruoyi-common-core ---
+[INFO] skip non existing resourceDirectory /app/ruoyi-common/ruoyi-common-core/src/test/resources
+[INFO]
+[INFO] --- compiler:3.13.0:testCompile (default-testCompile) @ ruoyi-common-core ---
+[INFO] No sources to compile
+[INFO]
+[INFO] --- surefire:3.2.5:test (default-test) @ ruoyi-common-core ---
+[INFO] No tests to run.
+[INFO]
+[INFO] ------------------------< com.ruoyi:ruoyi-api >-------------------------
+[INFO] Building ruoyi-api 3.6.4                                           [4/8]
+[INFO]   from ruoyi-api/pom.xml
+[INFO] --------------------------------[ pom ]---------------------------------
+[INFO]
+[INFO] ---------------------< com.ruoyi:ruoyi-api-system >---------------------
+[INFO] Building ruoyi-api-system 3.6.4                                    [5/8]
+[INFO]   from ruoyi-api/ruoyi-api-system/pom.xml
+[INFO] --------------------------------[ jar ]---------------------------------
+[INFO]
+[INFO] --- resources:3.3.1:resources (default-resources) @ ruoyi-api-system ---
+[INFO] Copying 1 resource from src/main/resources to target/classes
+[INFO]
+[INFO] --- compiler:3.13.0:compile (default-compile) @ ruoyi-api-system ---
+[INFO] Nothing to compile - all classes are up to date.
+[INFO]
+[INFO] --- resources:3.3.1:testResources (default-testResources) @ ruoyi-api-system ---
+[INFO] skip non existing resourceDirectory /app/ruoyi-api/ruoyi-api-system/src/test/resources
+[INFO]
+[INFO] --- compiler:3.13.0:testCompile (default-testCompile) @ ruoyi-api-system ---
+[INFO] No sources to compile
+[INFO]
+[INFO] --- surefire:3.2.5:test (default-test) @ ruoyi-api-system ---
+[INFO] No tests to run.
+[INFO]
+[INFO] -------------------< com.ruoyi:ruoyi-common-swagger >-------------------
+[INFO] Building ruoyi-common-swagger 3.6.4                                [6/8]
+[INFO]   from ruoyi-common/ruoyi-common-swagger/pom.xml
+[INFO] --------------------------------[ jar ]---------------------------------
+[INFO]
+[INFO] --- resources:3.3.1:resources (default-resources) @ ruoyi-common-swagger ---
+[INFO] Copying 1 resource from src/main/resources to target/classes
+[INFO]
+[INFO] --- compiler:3.13.0:compile (default-compile) @ ruoyi-common-swagger ---
+[INFO] Nothing to compile - all classes are up to date.
+[INFO]
+[INFO] --- resources:3.3.1:testResources (default-testResources) @ ruoyi-common-swagger ---
+[INFO] skip non existing resourceDirectory /app/ruoyi-common/ruoyi-common-swagger/src/test/resources
+[INFO]
+[INFO] --- compiler:3.13.0:testCompile (default-testCompile) @ ruoyi-common-swagger ---
+[INFO] No sources to compile
+[INFO]
+[INFO] --- surefire:3.2.5:test (default-test) @ ruoyi-common-swagger ---
+[INFO] No tests to run.
+[INFO]
+[INFO] ----------------------< com.ruoyi:ruoyi-modules >-----------------------
+[INFO] Building ruoyi-modules 3.6.4                                       [7/8]
+[INFO]   from ruoyi-modules/pom.xml
+[INFO] --------------------------------[ pom ]---------------------------------
+[INFO]
+[INFO] --------------------< com.ruoyi:ruoyi-modules-file >--------------------
+[INFO] Building ruoyi-modules-file 3.6.4                                  [8/8]
+[INFO]   from ruoyi-modules/ruoyi-file/pom.xml
+[INFO] --------------------------------[ jar ]---------------------------------
+[INFO]
+[INFO] --- resources:3.3.1:resources (default-resources) @ ruoyi-modules-file ---
+[INFO] Copying 3 resources from src/main/resources to target/classes
+[INFO]
+[INFO] --- compiler:3.13.0:compile (default-compile) @ ruoyi-modules-file ---
+[INFO] Nothing to compile - all classes are up to date.
+[INFO]
+[INFO] --- resources:3.3.1:testResources (default-testResources) @ ruoyi-modules-file ---
+[INFO] skip non existing resourceDirectory /app/ruoyi-modules/ruoyi-file/src/test/resources
+[INFO]
+[INFO] --- compiler:3.13.0:testCompile (default-testCompile) @ ruoyi-modules-file ---
+[INFO] No sources to compile
+[INFO]
+[INFO] --- surefire:3.2.5:test (default-test) @ ruoyi-modules-file ---
+[INFO] No tests to run.
+[INFO] ------------------------------------------------------------------------
+[INFO] Reactor Summary for ruoyi 3.6.4:
+[INFO]
+[INFO] ruoyi .............................................. SUCCESS [  0.120 s]
+[INFO] ruoyi-common ....................................... SUCCESS [  0.000 s]
+[INFO] ruoyi-common-core .................................. SUCCESS [  0.966 s]
+[INFO] ruoyi-api .......................................... SUCCESS [  0.000 s]
+[INFO] ruoyi-api-system ................................... SUCCESS [  0.070 s]
+[INFO] ruoyi-common-swagger ............................... SUCCESS [  0.098 s]
+[INFO] ruoyi-modules ...................................... SUCCESS [  0.001 s]
+[INFO] ruoyi-modules-file ................................. SUCCESS [  0.270 s]
+[INFO] ------------------------------------------------------------------------
+[INFO] BUILD SUCCESS
+[INFO] ------------------------------------------------------------------------
+[INFO] Total time:  1.988 s
+[INFO] Finished at: 2026-06-02T04:59:34Z
+[INFO] ------------------------------------------------------------------------

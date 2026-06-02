@@ -16,6 +16,15 @@ import com.ruoyi.common.core.utils.file.FileTypeUtils;
 import com.ruoyi.common.core.utils.file.MimeTypeUtils;
 import com.ruoyi.common.core.utils.uuid.Seq;
 
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
+import java.util.zip.GZIPOutputStream;
+
 /**
  * 文件上传工具类
  * 
@@ -85,6 +94,141 @@ public class FileUploadUtils
 
         String absPath = getAbsoluteFile(baseDir, fileName).getAbsolutePath();
         file.transferTo(Paths.get(absPath));
+        return getPathFileName(fileName);
+    }
+
+    /**
+     * 根据文件路径并发分片压缩上传
+     *
+     * @param baseDir 相对应用的基目录
+     * @param file 上传的文件
+     * @return 文件名称
+     * @throws IOException
+     */
+    public static final String uploadConcurrent(String baseDir, MultipartFile file) throws IOException
+    {
+        try
+        {
+            return uploadConcurrent(baseDir, file, MimeTypeUtils.DEFAULT_ALLOWED_EXTENSION);
+        }
+        catch (FileException fe)
+        {
+            throw new IOException(fe.getDefaultMessage(), fe);
+        }
+        catch (Exception e)
+        {
+            throw new IOException(e.getMessage(), e);
+        }
+    }
+
+    /**
+     * 并发分片压缩上传文件
+     *
+     * @param baseDir 相对应用的基目录
+     * @param file 上传的文件
+     * @param allowedExtension 上传文件类型
+     * @return 返回上传成功的文件名
+     * @throws Exception
+     */
+    public static final String uploadConcurrent(String baseDir, MultipartFile file, String[] allowedExtension)
+            throws Exception
+    {
+        int fileNamelength = Objects.requireNonNull(file.getOriginalFilename()).length();
+        if (fileNamelength > FileUploadUtils.DEFAULT_FILE_NAME_LENGTH)
+        {
+            throw new FileNameLengthLimitExceededException(FileUploadUtils.DEFAULT_FILE_NAME_LENGTH);
+        }
+
+        assertAllowed(file, allowedExtension);
+
+        String fileName = extractFilename(file);
+        fileName = fileName + ".gz"; // 追加压缩后缀
+
+        File absFile = getAbsoluteFile(baseDir, fileName);
+        String absPath = absFile.getAbsolutePath();
+
+        long chunkSize = 5 * 1024 * 1024; // 5MB per chunk
+        long fileSize = file.getSize();
+        int chunkCount = (int) Math.ceil((double) fileSize / chunkSize);
+
+        if (chunkCount <= 1)
+        {
+            try (java.io.InputStream in = file.getInputStream();
+                 FileOutputStream fos = new FileOutputStream(absPath);
+                 GZIPOutputStream gos = new GZIPOutputStream(fos))
+            {
+                org.apache.commons.io.IOUtils.copy(in, gos);
+            }
+            return getPathFileName(fileName);
+        }
+
+        ExecutorService executor = Executors.newFixedThreadPool(Math.min(chunkCount, 10));
+        List<Future<File>> futures = new ArrayList<>();
+        List<File> chunkFilesToClean = new ArrayList<>();
+
+        File tempFile = File.createTempFile("upload_", ".tmp");
+        file.transferTo(tempFile);
+
+        try
+        {
+            for (int i = 0; i < chunkCount; i++)
+            {
+                final int chunkIndex = i;
+                final long start = i * chunkSize;
+                final long length = Math.min(chunkSize, fileSize - start);
+
+                File chunkFile = File.createTempFile("chunk_" + chunkIndex + "_", ".gz");
+                chunkFilesToClean.add(chunkFile);
+
+                futures.add(executor.submit(() -> {
+                    try (java.io.RandomAccessFile raf = new java.io.RandomAccessFile(tempFile, "r");
+                         FileOutputStream fos = new FileOutputStream(chunkFile);
+                         GZIPOutputStream gos = new GZIPOutputStream(fos))
+                    {
+                        raf.seek(start);
+                        byte[] buffer = new byte[8192];
+                        long bytesReadTotal = 0;
+                        int bytesRead;
+                        while (bytesReadTotal < length && (bytesRead = raf.read(buffer, 0, (int) Math.min(buffer.length, length - bytesReadTotal))) != -1)
+                        {
+                            gos.write(buffer, 0, bytesRead);
+                            bytesReadTotal += bytesRead;
+                        }
+                    }
+                    return chunkFile;
+                }));
+            }
+
+            List<File> chunkFiles = new ArrayList<>();
+            for (Future<File> future : futures)
+            {
+                chunkFiles.add(future.get());
+            }
+
+            try (FileOutputStream mergedFos = new FileOutputStream(absFile))
+            {
+                for (File chunk : chunkFiles)
+                {
+                    try (FileInputStream fis = new FileInputStream(chunk))
+                    {
+                        org.apache.commons.io.IOUtils.copy(fis, mergedFos);
+                    }
+                }
+            }
+        }
+        finally
+        {
+            executor.shutdownNow();
+            tempFile.delete();
+            for (File chunk : chunkFilesToClean)
+            {
+                if (chunk.exists())
+                {
+                    chunk.delete();
+                }
+            }
+        }
+
         return getPathFileName(fileName);
     }
 
