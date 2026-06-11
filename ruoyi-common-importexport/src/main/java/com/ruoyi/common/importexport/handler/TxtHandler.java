@@ -42,6 +42,24 @@ public class TxtHandler<T> extends AbstractImportExportHandler<T> {
     }
 
     @Override
+    protected void doExportBigData(Iterable<List<T>> dataIterable, Class<T> clazz, OutputStream os) {
+        try (BufferedWriter writer = new BufferedWriter(new OutputStreamWriter(os, StandardCharsets.UTF_8))) {
+            for (List<T> batch : dataIterable) {
+                if (batch != null) {
+                    for (T item : batch) {
+                        writer.write(JSON.toJSONString(item));
+                        writer.newLine();
+                    }
+                    writer.flush();
+                }
+            }
+        } catch (Exception e) {
+            log.error("TXT大数据分批导出异常", e);
+            throw new ImportExportException("TXT大数据分批导出异常: " + e.getMessage(), e);
+        }
+    }
+
+    @Override
     protected List<T> doImport(InputStream is, Class<T> clazz) {
         List<T> resultList = new ArrayList<>();
         try (BufferedReader reader = new BufferedReader(new InputStreamReader(is, StandardCharsets.UTF_8))) {
