@@ -19,7 +19,7 @@ public class GenerateMillionDataTest {
         "中国", "美国", "英国", "法国", "德国", "日本", "韩国", "加拿大", "澳大利亚", "俄罗斯",
         "巴西", "印度", "新加坡", "意大利", "西班牙", "荷兰", "瑞士", "瑞典", "新西兰", "南非",
         "墨西哥", "越南", "泰国", "马来西亚", "菲律宾", "印度尼西亚", "阿联酋", "沙特阿拉伯", "土耳其", "埃及",
-        "阿根廷", "智利", "哥伦比亚", "秘鲁", "爱尔兰", "比利时", "奥地利", "丹麦", "挪威", "芬兰",
+        "阿根廷", "智利", "哥联比亚", "秘鲁", "爱尔兰", "比利时", "奥地利", "丹麦", "挪威", "芬兰",
         "波兰", "希腊", "葡萄牙", "捷克", "匈牙利", "罗马尼亚", "哈萨克斯坦", "以色列", "巴基斯坦", "孟加拉国"
     };
 
@@ -39,16 +39,51 @@ public class GenerateMillionDataTest {
         return Long.parseLong(cleanStr);
     }
 
+    /**
+     * 核心字段生成逻辑：根据字段配置的分组大小计算出对应行的值
+     */
+    private String generateValue(String colName, String seedVal, long globalRowIndex, 
+                                 Map<String, Integer> fieldGroupSizes, Map<Long, String> countryCache) {
+        Integer groupSize = fieldGroupSizes.get(colName);
+        if (groupSize == null) {
+            // 没有配置分组大小的字段，直接返回种子值
+            return seedVal;
+        }
+
+        long groupIndex = globalRowIndex / groupSize;
+
+        if ("country".equals(colName)) {
+            return countryCache.computeIfAbsent(groupIndex, k -> 
+                REAL_COUNTRIES[ThreadLocalRandom.current().nextInt(REAL_COUNTRIES.length)]
+            );
+        }
+
+        if (isNumeric(seedVal)) {
+            long baseNum = parseLongRobust(seedVal);
+            return String.valueOf(baseNum + groupIndex);
+        } else {
+            if (groupSize == 1) {
+                // 如果分组大小为 1，即逐行自增，保留原来的格式下划线+行号
+                return seedVal + "_" + (globalRowIndex + 1);
+            } else {
+                return seedVal + (groupIndex > 0 ? String.valueOf(groupIndex) : "");
+            }
+        }
+    }
+
     @Test
     public void generateData() throws Exception {
         String inputPath = "d:/fengyong/RuoYi-Cloud-3.6.4/bd.xlsx";
         String outputPath = "d:/fengyong/RuoYi-Cloud-3.6.4/bd_million_java_100m.csv";
 
-        // 配置：哪些字段在生成每一组时自动带上组号后缀（小写匹配）
-        Set<String> groupIdentifierFields = new HashSet<>(Arrays.asList("bdnm", "bdfh"));
-        
-        // 配置：哪些字段需要在组内行级进行序列自增（小写匹配）
-        Set<String> autoIncrementFields = new HashSet<>(Arrays.asList("bdnm", "bdfh"));
+        // 配置：各个字段的分组大小（单位：行）。未配置的字段将直接使用种子数据不变。
+        // - 如果设置为 1：表示该字段逐行自增。
+        // - 如果设置为 N (N > 1)：表示该字段每 N 行换一个值（分组）。
+        // - 未配置：该字段始终使用 Excel 的种子行原始值。
+        Map<String, Integer> fieldGroupSizes = new HashMap<>();
+        fieldGroupSizes.put("bdnm", 10);
+        fieldGroupSizes.put("bdfh", 10);
+        fieldGroupSizes.put("country", 2000);
 
         List<String> headers = new ArrayList<>();
         List<String> seedRow = new ArrayList<>();
@@ -86,10 +121,9 @@ public class GenerateMillionDataTest {
 
         // 生成配置
         int targetSizeMb = 100;      // 目标文件大小（单位为 MB）
-        int rowsPerGroup = 2000;    // 每组生成的行数
         
-        // 动态估算生成指定大小 CSV 所需的组数
-        int numGroups = estimateTargetGroupsForCsv(headers, seedRow, targetSizeMb, rowsPerGroup, groupIdentifierFields, autoIncrementFields);
+        // 动态估算生成指定大小 CSV 所需的总行数
+        long totalRows = estimateTotalRowsForCsv(headers, seedRow, targetSizeMb, fieldGroupSizes);
 
         long startTime = System.currentTimeMillis();
         try (BufferedWriter writer = new BufferedWriter(
@@ -107,49 +141,25 @@ public class GenerateMillionDataTest {
             }
             writer.write("\n");
 
-            for (int g = 0; g < numGroups; g++) {
-                String groupSuffix = g > 0 ? String.valueOf(g) : "";
-                String grpCountry = REAL_COUNTRIES[ThreadLocalRandom.current().nextInt(REAL_COUNTRIES.length)];
+            Map<Long, String> countryCache = new HashMap<>();
 
-                for (int r = 1; r <= rowsPerGroup; r++) {
-                    for (int i = 0; i < headers.size(); i++) {
-                        String colName = headers.get(i).toLowerCase();
-                        String seedVal = i < seedRow.size() ? seedRow.get(i) : "";
-                        String finalVal;
+            for (long globalRowIndex = 0; globalRowIndex < totalRows; globalRowIndex++) {
+                for (int i = 0; i < headers.size(); i++) {
+                    String colName = headers.get(i).toLowerCase();
+                    String seedVal = i < seedRow.size() ? seedRow.get(i) : "";
+                    String finalVal = generateValue(colName, seedVal, globalRowIndex, fieldGroupSizes, countryCache);
 
-                        if ("country".equals(colName)) {
-                            finalVal = grpCountry;
-                        } else {
-                            finalVal = seedVal;
-                            if (autoIncrementFields.contains(colName)) {
-                                if (isNumeric(finalVal)) {
-                                    long baseNum = parseLongRobust(finalVal);
-                                    finalVal = String.valueOf(baseNum + ((long) g * rowsPerGroup) + (r - 1));
-                                } else {
-                                    finalVal = finalVal + groupSuffix + "_" + r;
-                                }
-                            } else if (groupIdentifierFields.contains(colName)) {
-                                if (isNumeric(finalVal)) {
-                                    long baseNum = parseLongRobust(finalVal);
-                                    finalVal = String.valueOf(baseNum + g);
-                                } else {
-                                    finalVal = finalVal + groupSuffix;
-                                }
-                            }
-                        }
-
-                        writer.write(escapeCsv(finalVal));
-                        if (i < headers.size() - 1) {
-                            writer.write(",");
-                        }
+                    writer.write(escapeCsv(finalVal));
+                    if (i < headers.size() - 1) {
+                        writer.write(",");
                     }
-                    writer.write("\n");
                 }
+                writer.write("\n");
             }
         }
 
         long endTime = System.currentTimeMillis();
-        System.out.println("Successfully generated " + (numGroups * rowsPerGroup) + " rows to " + outputPath);
+        System.out.println("Successfully generated " + totalRows + " rows to " + outputPath);
         System.out.println("Time taken: " + (endTime - startTime) + " ms");
     }
 
@@ -158,11 +168,15 @@ public class GenerateMillionDataTest {
         String inputPath = "d:/fengyong/RuoYi-Cloud-3.6.4/bd.xlsx";
         String outputPath = "d:/fengyong/RuoYi-Cloud-3.6.4/bd_million_java_100m.xlsx";
 
-        // 配置：哪些字段在生成每一组时自动带上组号后缀（小写匹配）
-        Set<String> groupIdentifierFields = new HashSet<>(Arrays.asList("bdnm", "bdfh","存量1"));
-        
-        // 配置：哪些字段需要在组内行级进行序列自增（小写匹配）
-        Set<String> autoIncrementFields = new HashSet<>(Arrays.asList("bdnm", "bdfh","存量1"));
+        // 配置：各个字段的分组大小（单位：行）。未配置的字段将直接使用种子数据不变。
+        // - 如果设置为 1：表示该字段逐行自增。
+        // - 如果设置为 N (N > 1)：表示该字段每 N 行换一个值（分组）。
+        // - 未配置：该字段始终使用 Excel 的种子行原始值。
+        Map<String, Integer> fieldGroupSizes = new HashMap<>();
+        fieldGroupSizes.put("bdnm", 500);
+        fieldGroupSizes.put("bdfh", 500);
+        fieldGroupSizes.put("存量1", 500);
+        fieldGroupSizes.put("country", 2000);
 
         List<String> headers = new ArrayList<>();
         List<String> seedRow = new ArrayList<>();
@@ -200,11 +214,10 @@ public class GenerateMillionDataTest {
 
         // 生成配置
         int targetSizeMb = 100;      // 目标文件大小（单位为 MB）
-        int rowsPerGroup = 2000;    // 每组生成的行数
         int maxRowsPerSheet = 1000000; // 单个Sheet的最大数据行数限制
 
-        // 动态估算生成指定大小 Excel 所需的组数
-        int numGroups = estimateTargetGroups(headers, seedRow, targetSizeMb, rowsPerGroup, groupIdentifierFields, autoIncrementFields);
+        // 动态估算生成指定大小 Excel 所需的总行数
+        long totalRows = estimateTotalRows(headers, seedRow, targetSizeMb, fieldGroupSizes);
 
         long startTime = System.currentTimeMillis();
 
@@ -216,53 +229,29 @@ public class GenerateMillionDataTest {
             Sheet currentSheet = null;
             int rowInSheet = 0;
 
-            for (int g = 0; g < numGroups; g++) {
-                String groupSuffix = g > 0 ? String.valueOf(g) : "";
-                String grpCountry = REAL_COUNTRIES[ThreadLocalRandom.current().nextInt(REAL_COUNTRIES.length)];
+            Map<Long, String> countryCache = new HashMap<>();
 
-                for (int r = 1; r <= rowsPerGroup; r++) {
-                    if (currentSheet == null || rowInSheet > maxRowsPerSheet) {
-                        sheetCount++;
-                        currentSheet = workbook.createSheet("Sheet" + sheetCount);
-                        // 创建动态表头
-                        Row header = currentSheet.createRow(0);
-                        for (int i = 0; i < headers.size(); i++) {
-                            header.createCell(i).setCellValue(headers.get(i));
-                        }
-                        rowInSheet = 1;
-                    }
-
-                    Row row = currentSheet.createRow(rowInSheet);
+            for (long globalRowIndex = 0; globalRowIndex < totalRows; globalRowIndex++) {
+                if (currentSheet == null || rowInSheet > maxRowsPerSheet) {
+                    sheetCount++;
+                    currentSheet = workbook.createSheet("Sheet" + sheetCount);
+                    // 创建动态表头
+                    Row header = currentSheet.createRow(0);
                     for (int i = 0; i < headers.size(); i++) {
-                        String colName = headers.get(i).toLowerCase();
-                        String seedVal = i < seedRow.size() ? seedRow.get(i) : "";
-                        String finalVal;
-
-                        if ("country".equals(colName)) {
-                            finalVal = grpCountry;
-                        } else {
-                            finalVal = seedVal;
-                            if (autoIncrementFields.contains(colName)) {
-                                if (isNumeric(finalVal)) {
-                                    long baseNum = parseLongRobust(finalVal);
-                                    finalVal = String.valueOf(baseNum + ((long) g * rowsPerGroup) + (r - 1));
-                                } else {
-                                    finalVal = finalVal + groupSuffix + "_" + r;
-                                }
-                            } else if (groupIdentifierFields.contains(colName)) {
-                                if (isNumeric(finalVal)) {
-                                    long baseNum = parseLongRobust(finalVal);
-                                    finalVal = String.valueOf(baseNum + g);
-                                } else {
-                                    finalVal = finalVal + groupSuffix;
-                                }
-                            }
-                        }
-                        row.createCell(i).setCellValue(finalVal);
+                        header.createCell(i).setCellValue(headers.get(i));
                     }
-
-                    rowInSheet++;
+                    rowInSheet = 1;
                 }
+
+                Row row = currentSheet.createRow(rowInSheet);
+                for (int i = 0; i < headers.size(); i++) {
+                    String colName = headers.get(i).toLowerCase();
+                    String seedVal = i < seedRow.size() ? seedRow.get(i) : "";
+                    String finalVal = generateValue(colName, seedVal, globalRowIndex, fieldGroupSizes, countryCache);
+                    row.createCell(i).setCellValue(finalVal);
+                }
+
+                rowInSheet++;
             }
 
             workbook.write(os);
@@ -275,8 +264,8 @@ public class GenerateMillionDataTest {
         System.out.println("Time taken for Excel: " + (endTime - startTime) + " ms");
     }
 
-    private int estimateTargetGroups(List<String> headers, List<String> seedRow, int targetSizeMb, 
-                                     int rowsPerGroup, Set<String> groupIdentifierFields, Set<String> autoIncrementFields) throws Exception {
+    private long estimateTotalRows(List<String> headers, List<String> seedRow, int targetSizeMb, 
+                                   Map<String, Integer> fieldGroupSizes) throws Exception {
         int pilotRows = 5000;
         ByteArrayOutputStream bos = new ByteArrayOutputStream();
         
@@ -287,29 +276,15 @@ public class GenerateMillionDataTest {
                 headerRow.createCell(i).setCellValue(headers.get(i));
             }
 
+            Map<Long, String> countryCache = new HashMap<>();
+
             for (int r = 1; r <= pilotRows; r++) {
-                String grpCountry = REAL_COUNTRIES[ThreadLocalRandom.current().nextInt(REAL_COUNTRIES.length)];
+                long globalRowIndex = r - 1;
                 Row row = sheet.createRow(r);
                 for (int i = 0; i < headers.size(); i++) {
                     String colName = headers.get(i).toLowerCase();
                     String seedVal = i < seedRow.size() ? seedRow.get(i) : "";
-                    String finalVal;
-
-                    if ("country".equals(colName)) {
-                        finalVal = grpCountry;
-                    } else {
-                        finalVal = seedVal;
-                        if (autoIncrementFields.contains(colName)) {
-                            if (isNumeric(finalVal)) {
-                                long baseNum = parseLongRobust(finalVal);
-                                finalVal = String.valueOf(baseNum + (r - 1));
-                            } else {
-                                finalVal = finalVal + "_" + r;
-                            }
-                        } else if (groupIdentifierFields.contains(colName)) {
-                            finalVal = finalVal; // base estimation keeps unmodified
-                        }
-                    }
+                    String finalVal = generateValue(colName, seedVal, globalRowIndex, fieldGroupSizes, countryCache);
                     row.createCell(i).setCellValue(finalVal);
                 }
             }
@@ -319,16 +294,14 @@ public class GenerateMillionDataTest {
         long compressedPilotSize = bos.size();
         double bytesPerRow = (double) compressedPilotSize / pilotRows;
         long targetBytes = (long) targetSizeMb * 1024 * 1024;
-        double totalRowsNeeded = targetBytes / bytesPerRow;
-        
-        int estimatedGroups = (int) Math.max(1, Math.round(totalRowsNeeded / rowsPerGroup));
+        long totalRows = (long) Math.max(1, Math.round(targetBytes / bytesPerRow));
         System.out.println("Excel Pilot Run: Sample size 5000 rows, compressed size in memory = " + (compressedPilotSize / 1024.0) + " KB");
-        System.out.println("Excel Pilot Run: Estimated bytes per row = " + bytesPerRow + ", target rows = " + Math.round(totalRowsNeeded) + ", estimated groups = " + estimatedGroups);
-        return estimatedGroups;
+        System.out.println("Excel Pilot Run: Estimated bytes per row = " + bytesPerRow + ", target rows = " + totalRows);
+        return totalRows;
     }
 
-    private int estimateTargetGroupsForCsv(List<String> headers, List<String> seedRow, int targetSizeMb, 
-                                           int rowsPerGroup, Set<String> groupIdentifierFields, Set<String> autoIncrementFields) throws Exception {
+    private long estimateTotalRowsForCsv(List<String> headers, List<String> seedRow, int targetSizeMb, 
+                                         Map<String, Integer> fieldGroupSizes) throws Exception {
         int pilotRows = 5000;
         ByteArrayOutputStream bos = new ByteArrayOutputStream();
         try (BufferedWriter writer = new BufferedWriter(new OutputStreamWriter(bos, StandardCharsets.UTF_8))) {
@@ -341,28 +314,14 @@ public class GenerateMillionDataTest {
             }
             writer.write("\n");
 
+            Map<Long, String> countryCache = new HashMap<>();
+
             for (int r = 1; r <= pilotRows; r++) {
-                String grpCountry = REAL_COUNTRIES[ThreadLocalRandom.current().nextInt(REAL_COUNTRIES.length)];
+                long globalRowIndex = r - 1;
                 for (int i = 0; i < headers.size(); i++) {
                     String colName = headers.get(i).toLowerCase();
                     String seedVal = i < seedRow.size() ? seedRow.get(i) : "";
-                    String finalVal;
-
-                    if ("country".equals(colName)) {
-                        finalVal = grpCountry;
-                    } else {
-                        finalVal = seedVal;
-                        if (autoIncrementFields.contains(colName)) {
-                            if (isNumeric(finalVal)) {
-                                long baseNum = parseLongRobust(finalVal);
-                                finalVal = String.valueOf(baseNum + (r - 1));
-                            } else {
-                                finalVal = finalVal + "_" + r;
-                            }
-                        } else if (groupIdentifierFields.contains(colName)) {
-                            finalVal = finalVal;
-                        }
-                    }
+                    String finalVal = generateValue(colName, seedVal, globalRowIndex, fieldGroupSizes, countryCache);
                     writer.write(escapeCsv(finalVal));
                     if (i < headers.size() - 1) {
                         writer.write(",");
@@ -374,11 +333,10 @@ public class GenerateMillionDataTest {
         long size = bos.size();
         double bytesPerRow = (double) size / pilotRows;
         long targetBytes = (long) targetSizeMb * 1024 * 1024;
-        double totalRowsNeeded = targetBytes / bytesPerRow;
-        int estimatedGroups = (int) Math.max(1, Math.round(totalRowsNeeded / rowsPerGroup));
+        long totalRows = (long) Math.max(1, Math.round(targetBytes / bytesPerRow));
         System.out.println("CSV Pilot Run: Sample size 5000 rows, size in memory = " + (size / 1024.0) + " KB");
-        System.out.println("CSV Pilot Run: Estimated bytes per row = " + bytesPerRow + ", target rows = " + Math.round(totalRowsNeeded) + ", estimated groups = " + estimatedGroups);
-        return estimatedGroups;
+        System.out.println("CSV Pilot Run: Estimated bytes per row = " + bytesPerRow + ", target rows = " + totalRows);
+        return totalRows;
     }
 
     private String escapeCsv(String val) {

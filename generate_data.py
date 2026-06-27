@@ -105,30 +105,55 @@ def read_first_row_from_xlsx(file_path):
         
         return header_list, data_list
 
-def generate_million_data(input_xlsx, output_csv, num_groups=500, rows_per_group=2000, 
-                          group_identifier_fields=None, auto_increment_fields=None):
+def generate_value(col_name, seed_val, global_row_idx, field_group_sizes, country_cache):
+    """
+    核心字段生成逻辑：根据字段配置的分组大小计算出对应行的值
+    """
+    group_size = field_group_sizes.get(col_name)
+    if group_size is None:
+        return seed_val
+        
+    group_index = global_row_idx // group_size
+    
+    if col_name == 'country':
+        if group_index not in country_cache:
+            country_cache[group_index] = random.choice(REAL_COUNTRIES)
+        return country_cache[group_index]
+        
+    if is_numeric(seed_val):
+        base_num = parse_int_robust(seed_val)
+        return str(base_num + group_index)
+    else:
+        if group_size == 1:
+            return f"{seed_val}_{global_row_idx + 1}"
+        else:
+            suffix = str(group_index) if group_index > 0 else ""
+            return f"{seed_val}{suffix}"
+
+def generate_million_data(input_xlsx, output_csv, target_size_mb=100, field_group_sizes=None):
     """
     Generate million-level data to a CSV file.
     """
-    if group_identifier_fields is None:
-        group_identifier_fields = {'bdnm', 'bdfh'}
+    if field_group_sizes is None:
+        field_group_sizes = {
+            "bdnm": 10,
+            "bdfh": 10,
+            "country": 2000
+        }
     else:
-        group_identifier_fields = {f.lower() for f in group_identifier_fields}
-        
-    if auto_increment_fields is None:
-        auto_increment_fields = {'bdnm', 'bdfh'}
-    else:
-        auto_increment_fields = {f.lower() for f in auto_increment_fields}
+        field_group_sizes = {k.lower(): v for k, v in field_group_sizes.items()}
 
     print("Reading seed data from Excel...")
     headers, first_row = read_first_row_from_xlsx(input_xlsx)
     print(f"Headers: {headers}")
     print(f"Seed Row: {first_row}")
     
-    total_expected = num_groups * rows_per_group
+    # Estimate total rows
+    total_expected = estimate_total_rows_csv(input_xlsx, target_size_mb, field_group_sizes)
     print(f"Generating {total_expected} rows into CSV {output_csv}...")
     
     random.seed(42)
+    country_cache = {}
     
     with open(output_csv, 'w', newline='', encoding='utf-8-sig') as f:
         writer = csv.writer(f)
@@ -137,70 +162,50 @@ def generate_million_data(input_xlsx, output_csv, num_groups=500, rows_per_group
         batch_size = 10000
         batch = []
         
-        for g in range(num_groups):
-            group_suffix = str(g) if g > 0 else ""
-            grp_country = random.choice(REAL_COUNTRIES)
+        for global_row_idx in range(total_expected):
+            row_data = []
+            for idx, h in enumerate(headers):
+                h_lower = h.strip().lower()
+                seed_val = first_row[idx] if idx < len(first_row) else ""
+                val = generate_value(h_lower, seed_val, global_row_idx, field_group_sizes, country_cache)
+                row_data.append(val)
             
-            for r in range(1, rows_per_group + 1):
-                row_data = []
-                for idx, h in enumerate(headers):
-                    h_lower = h.strip().lower()
-                    seed_val = first_row[idx] if idx < len(first_row) else ""
-                    
-                    if h_lower == 'country':
-                        val = grp_country
-                    else:
-                        val = seed_val
-                        if h_lower in auto_increment_fields:
-                            if is_numeric(val):
-                                base_num = parse_int_robust(val)
-                                val = str(base_num + (g * rows_per_group) + (r - 1))
-                            else:
-                                val = f"{val}{group_suffix}_{r}"
-                        elif h_lower in group_identifier_fields:
-                            if is_numeric(val):
-                                base_num = parse_int_robust(val)
-                                val = str(base_num + g)
-                            else:
-                                val = f"{val}{group_suffix}"
-                            
-                    row_data.append(val)
-                
-                batch.append(row_data)
-                
-                if len(batch) >= batch_size:
-                    writer.writerows(batch)
-                    batch = []
+            batch.append(row_data)
+            
+            if len(batch) >= batch_size:
+                writer.writerows(batch)
+                batch = []
                     
         if batch:
             writer.writerows(batch)
             
     print(f"Done! Successfully generated {total_expected} rows.")
 
-def generate_million_data_xlsx(input_xlsx, output_xlsx, num_groups=500, rows_per_group=2000, 
-                               group_identifier_fields=None, auto_increment_fields=None, max_rows_per_sheet=1000000):
+def generate_million_data_xlsx(input_xlsx, output_xlsx, target_size_mb=100, field_group_sizes=None, max_rows_per_sheet=1000000):
     """
     Generate million-level data to an Excel file with multiple sheets support.
     """
-    if group_identifier_fields is None:
-        group_identifier_fields = {'bdnm', 'bdfh'}
+    if field_group_sizes is None:
+        field_group_sizes = {
+            "bdnm": 10,
+            "bdfh": 10,
+            "存量1": 10,
+            "country": 2000
+        }
     else:
-        group_identifier_fields = {f.lower() for f in group_identifier_fields}
-        
-    if auto_increment_fields is None:
-        auto_increment_fields = {'bdnm', 'bdfh'}
-    else:
-        auto_increment_fields = {f.lower() for f in auto_increment_fields}
+        field_group_sizes = {k.lower(): v for k, v in field_group_sizes.items()}
 
     print("Reading seed data from Excel...")
     headers, first_row = read_first_row_from_xlsx(input_xlsx)
     print(f"Headers: {headers}")
     print(f"Seed Row: {first_row}")
     
-    total_expected = num_groups * rows_per_group
+    # Estimate total rows
+    total_expected = estimate_total_rows_xlsx(input_xlsx, target_size_mb, field_group_sizes)
     print(f"Generating {total_expected} rows into Excel file {output_xlsx}...")
     
     random.seed(42)
+    country_cache = {}
     
     workbook = xlsxwriter.Workbook(output_xlsx, {'constant_memory': True})
     
@@ -208,60 +213,38 @@ def generate_million_data_xlsx(input_xlsx, output_xlsx, num_groups=500, rows_per
     worksheet = None
     row_in_sheet = 0
     
-    for g in range(num_groups):
-        group_suffix = str(g) if g > 0 else ""
-        grp_country = random.choice(REAL_COUNTRIES)
-        
-        for r in range(1, rows_per_group + 1):
-            if worksheet is None or row_in_sheet > max_rows_per_sheet:
-                sheet_count += 1
-                sheet_name = f"Sheet{sheet_count}"
-                print(f"Creating new sheet: {sheet_name}")
-                worksheet = workbook.add_worksheet(sheet_name)
-                # Write headers dynamically
-                for col_idx, h in enumerate(headers):
-                    worksheet.write(0, col_idx, h)
-                row_in_sheet = 1
-                
+    for global_row_idx in range(total_expected):
+        if worksheet is None or row_in_sheet > max_rows_per_sheet:
+            sheet_count += 1
+            sheet_name = f"Sheet{sheet_count}"
+            print(f"Creating new sheet: {sheet_name}")
+            worksheet = workbook.add_worksheet(sheet_name)
+            # Write headers dynamically
             for col_idx, h in enumerate(headers):
-                h_lower = h.strip().lower()
-                seed_val = first_row[col_idx] if col_idx < len(first_row) else ""
-                
-                if h_lower == 'country':
-                    val = grp_country
-                else:
-                    val = seed_val
-                    if h_lower in auto_increment_fields:
-                        if is_numeric(val):
-                            base_num = parse_int_robust(val)
-                            val = str(base_num + (g * rows_per_group) + (r - 1))
-                        else:
-                            val = f"{val}{group_suffix}_{r}"
-                    elif h_lower in group_identifier_fields:
-                        if is_numeric(val):
-                            base_num = parse_int_robust(val)
-                            val = str(base_num + g)
-                        else:
-                            val = f"{val}{group_suffix}"
-                worksheet.write(row_in_sheet, col_idx, val)
-                
-            row_in_sheet += 1
+                worksheet.write(0, col_idx, h)
+            row_in_sheet = 1
+            
+        for col_idx, h in enumerate(headers):
+            h_lower = h.strip().lower()
+            seed_val = first_row[col_idx] if col_idx < len(first_row) else ""
+            val = generate_value(h_lower, seed_val, global_row_idx, field_group_sizes, country_cache)
+            worksheet.write(row_in_sheet, col_idx, val)
+            
+        row_in_sheet += 1
             
     workbook.close()
     print(f"Done! Successfully generated Excel workbook with {sheet_count} sheets.")
 
-def estimate_target_groups_csv(input_xlsx, target_size_mb=100, rows_per_group=2000, 
-                               group_identifier_fields=None, auto_increment_fields=None, pilot_rows=5000):
+def estimate_total_rows_csv(input_xlsx, target_size_mb=100, field_group_sizes=None, pilot_rows=5000):
     import io
-    if group_identifier_fields is None:
-        group_identifier_fields = {'bdnm', 'bdfh'}
+    if field_group_sizes is None:
+        field_group_sizes = {
+            "bdnm": 10,
+            "bdfh": 10,
+            "country": 2000
+        }
     else:
-        group_identifier_fields = {f.lower() for f in group_identifier_fields}
-        
-    if auto_increment_fields is None:
-        auto_increment_fields = {'bdnm', 'bdfh'}
-    else:
-        auto_increment_fields = {f.lower() for f in auto_increment_fields}
+        field_group_sizes = {k.lower(): v for k, v in field_group_sizes.items()}
 
     headers, first_row = read_first_row_from_xlsx(input_xlsx)
     
@@ -269,29 +252,16 @@ def estimate_target_groups_csv(input_xlsx, target_size_mb=100, rows_per_group=20
     writer = csv.writer(mem_file)
     writer.writerow(headers)
     
+    country_cache = {}
+    random.seed(42)
+    
     for r in range(1, pilot_rows + 1):
+        global_row_idx = r - 1
         row_data = []
-        grp_country = random.choice(REAL_COUNTRIES)
         for idx, h in enumerate(headers):
             h_lower = h.strip().lower()
             seed_val = first_row[idx] if idx < len(first_row) else ""
-            
-            if h_lower == 'country':
-                val = grp_country
-            else:
-                val = seed_val
-                if h_lower in auto_increment_fields:
-                    if is_numeric(val):
-                        base_num = parse_int_robust(val)
-                        val = str(base_num + (r - 1))
-                    else:
-                        val = f"{val}_{r}"
-                elif h_lower in group_identifier_fields:
-                    if is_numeric(val):
-                        base_num = parse_int_robust(val)
-                        val = str(base_num)
-                    else:
-                        val = f"{val}"
+            val = generate_value(h_lower, seed_val, global_row_idx, field_group_sizes, country_cache)
             row_data.append(val)
         writer.writerow(row_data)
         
@@ -300,24 +270,22 @@ def estimate_target_groups_csv(input_xlsx, target_size_mb=100, rows_per_group=20
     size = len(content_bytes)
     bytes_per_row = size / pilot_rows
     target_bytes = target_size_mb * 1024 * 1024
-    total_rows = target_bytes / bytes_per_row
+    total_rows = int(round(target_bytes / bytes_per_row))
     
-    estimated_groups = max(1, int(round(total_rows / rows_per_group)))
-    print(f"CSV Pilot Run: size for {pilot_rows} rows is {size/1024:.2f} KB. Bytes per row: {bytes_per_row:.4f}. Target groups: {estimated_groups}")
-    return estimated_groups
+    print(f"CSV Pilot Run: size for {pilot_rows} rows is {size/1024:.2f} KB. Bytes per row: {bytes_per_row:.4f}. Target rows: {total_rows}")
+    return total_rows
 
-def estimate_target_groups_xlsx(input_xlsx, target_size_mb=100, rows_per_group=2000, 
-                                group_identifier_fields=None, auto_increment_fields=None, pilot_rows=5000):
+def estimate_total_rows_xlsx(input_xlsx, target_size_mb=100, field_group_sizes=None, pilot_rows=5000):
     import io
-    if group_identifier_fields is None:
-        group_identifier_fields = {'bdnm', 'bdfh'}
+    if field_group_sizes is None:
+        field_group_sizes = {
+            "bdnm": 10,
+            "bdfh": 10,
+            "存量1": 10,
+            "country": 2000
+        }
     else:
-        group_identifier_fields = {f.lower() for f in group_identifier_fields}
-        
-    if auto_increment_fields is None:
-        auto_increment_fields = {'bdnm', 'bdfh'}
-    else:
-        auto_increment_fields = {f.lower() for f in auto_increment_fields}
+        field_group_sizes = {k.lower(): v for k, v in field_group_sizes.items()}
 
     headers, first_row = read_first_row_from_xlsx(input_xlsx)
     
@@ -328,86 +296,63 @@ def estimate_target_groups_xlsx(input_xlsx, target_size_mb=100, rows_per_group=2
     for col_idx, h in enumerate(headers):
         worksheet.write(0, col_idx, h)
         
+    country_cache = {}
+    random.seed(42)
+    
     for r in range(1, pilot_rows + 1):
-        grp_country = random.choice(REAL_COUNTRIES)
+        global_row_idx = r - 1
         for col_idx, h in enumerate(headers):
             h_lower = h.strip().lower()
             seed_val = first_row[col_idx] if col_idx < len(first_row) else ""
-            
-            if h_lower == 'country':
-                val = grp_country
-            else:
-                val = seed_val
-                if h_lower in auto_increment_fields:
-                    if is_numeric(val):
-                        base_num = parse_int_robust(val)
-                        val = str(base_num + (r - 1))
-                    else:
-                        val = f"{val}_{r}"
-                elif h_lower in group_identifier_fields:
-                    if is_numeric(val):
-                        base_num = parse_int_robust(val)
-                        val = str(base_num)
-                    else:
-                        val = f"{val}"
+            val = generate_value(h_lower, seed_val, global_row_idx, field_group_sizes, country_cache)
             worksheet.write(r, col_idx, val)
             
     workbook.close()
     size = mem_file.tell()
     bytes_per_row = size / pilot_rows
     target_bytes = target_size_mb * 1024 * 1024
-    total_rows = target_bytes / bytes_per_row
+    total_rows = int(round(target_bytes / bytes_per_row))
     
-    estimated_groups = max(1, int(round(total_rows / rows_per_group)))
-    print(f"Excel Pilot Run: compressed size for {pilot_rows} rows is {size/1024:.2f} KB. Bytes per row: {bytes_per_row:.4f}. Target groups: {estimated_groups}")
-    return estimated_groups
+    print(f"Excel Pilot Run: compressed size for {pilot_rows} rows is {size/1024:.2f} KB. Bytes per row: {bytes_per_row:.4f}. Target rows: {total_rows}")
+    return total_rows
 
 if __name__ == '__main__':
     # Settings:
     # 目标生成物理大小 (单位: MB)
     target_size_mb = 100
     
-    # 哪些字段作为“分组标识”，将在生成每一组时自动带上组号后缀（例如 test, test1, test2）
-    group_identifier_fields = {'bdnm', 'bdfh'}
-    
-    # 哪些字段需要序列自增（在每组内部自增 1, 2, ... r）
-    auto_increment_fields = {'bdnm', 'bdfh'}
-    
     input_file = r'd:\fengyong\RuoYi-Cloud-3.6.4\bd.xlsx'
     output_file_csv = r'd:\fengyong\RuoYi-Cloud-3.6.4\bd_million_100m.csv'
     output_file_xlsx = r'd:\fengyong\RuoYi-Cloud-3.6.4\bd_million_100m.xlsx'
     
+    # CSV 的字段分组大小配置
+    csv_field_group_sizes = {
+        "bdnm": 10,
+        "bdfh": 10,
+        "country": 2000
+    }
+    
+    # Excel 的字段分组大小配置
+    xlsx_field_group_sizes = {
+        "bdnm": 10,
+        "bdfh": 10,
+        "存量1": 10,
+        "country": 2000
+    }
+    
     # 1. 动态生成指定大小的 CSV
-    csv_groups = estimate_target_groups_csv(
-        input_xlsx=input_file,
-        target_size_mb=target_size_mb,
-        rows_per_group=2000,
-        group_identifier_fields=group_identifier_fields,
-        auto_increment_fields=auto_increment_fields
-    )
     generate_million_data(
         input_xlsx=input_file,
         output_csv=output_file_csv,
-        num_groups=csv_groups,
-        rows_per_group=2000,
-        group_identifier_fields=group_identifier_fields,
-        auto_increment_fields=auto_increment_fields
+        target_size_mb=target_size_mb,
+        field_group_sizes=csv_field_group_sizes
     )
     
     # 2. 动态生成指定大小的 Excel
-    xlsx_groups = estimate_target_groups_xlsx(
-        input_xlsx=input_file,
-        target_size_mb=target_size_mb,
-        rows_per_group=2000,
-        group_identifier_fields=group_identifier_fields,
-        auto_increment_fields=auto_increment_fields
-    )
     generate_million_data_xlsx(
         input_xlsx=input_file,
         output_xlsx=output_file_xlsx,
-        num_groups=xlsx_groups,
-        rows_per_group=2000,
-        group_identifier_fields=group_identifier_fields,
-        auto_increment_fields=auto_increment_fields,
+        target_size_mb=target_size_mb,
+        field_group_sizes=xlsx_field_group_sizes,
         max_rows_per_sheet=1000000
     )
