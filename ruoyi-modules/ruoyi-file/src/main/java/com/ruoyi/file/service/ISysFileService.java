@@ -17,4 +17,17 @@ public interface ISysFileService
      * @throws Exception
      */
     public String uploadFile(MultipartFile file) throws Exception;
+
+    /**
+     * 并发分片压缩上传文件接口
+     * 默认调用普通上传以保证兼容性，支持无缝切换
+     *
+     * @param file 上传的文件
+     * @return 访问地址
+     * @throws Exception
+     */
+    default String uploadFileConcurrent(MultipartFile file) throws Exception
+    {
+        return uploadFile(file);
+    }
 }

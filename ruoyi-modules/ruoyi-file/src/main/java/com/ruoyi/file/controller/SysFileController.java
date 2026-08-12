@@ -25,6 +25,12 @@ public class SysFileController
     private ISysFileService sysFileService;
 
     /**
+     * 是否开启并发分片压缩上传，支持无缝切换
+     */
+    @org.springframework.beans.factory.annotation.Value("${file.concurrent-upload.enabled:false}")
+    private boolean concurrentUploadEnabled;
+
+    /**
      * 文件上传请求
      */
     @PostMapping("upload")
@@ -32,8 +38,17 @@ public class SysFileController
     {
         try
         {
-            // 上传并返回访问地址
-            String url = sysFileService.uploadFile(file);
+            // 根据配置无缝切换上传方式：普通上传或并发分片压缩上传
+            String url;
+            if (concurrentUploadEnabled)
+            {
+                url = sysFileService.uploadFileConcurrent(file);
+            }
+            else
+            {
+                url = sysFileService.uploadFile(file);
+            }
+
             SysFile sysFile = new SysFile();
             sysFile.setName(FileUtils.getName(url));
             sysFile.setUrl(url);

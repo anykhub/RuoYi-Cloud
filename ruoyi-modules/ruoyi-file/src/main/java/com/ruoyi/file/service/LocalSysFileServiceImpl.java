@@ -47,4 +47,19 @@ public class LocalSysFileServiceImpl implements ISysFileService
         String url = domain + localFilePrefix + name;
         return url;
     }
+
+    /**
+     * 并发分片压缩上传文件接口（本地存储实现）
+     *
+     * @param file 上传的文件
+     * @return 访问地址
+     * @throws Exception
+     */
+    @Override
+    public String uploadFileConcurrent(MultipartFile file) throws Exception
+    {
+        String name = FileUploadUtils.uploadConcurrent(localFilePath, file);
+        String url = domain + localFilePrefix + name;
+        return url;
+    }
 }
