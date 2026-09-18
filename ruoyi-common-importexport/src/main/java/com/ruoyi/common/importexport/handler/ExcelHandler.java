@@ -252,7 +252,15 @@ public class ExcelHandler<T> extends AbstractImportExportHandler<T> {
                 public void doAfterAllAnalysed(AnalysisContext context) {
                     log.info("Excel读取完成，当前Sheet解析完成");
                 }
-            }).doReadAll();
+            })
+            .registerConverter(new com.ruoyi.common.importexport.converter.StringTrimConverters.LongStringTrimConverter())
+            .registerConverter(new com.ruoyi.common.importexport.converter.StringTrimConverters.IntegerStringTrimConverter())
+            .registerConverter(new com.ruoyi.common.importexport.converter.StringTrimConverters.DoubleStringTrimConverter())
+            .registerConverter(new com.ruoyi.common.importexport.converter.StringTrimConverters.FloatStringTrimConverter())
+            .registerConverter(new com.ruoyi.common.importexport.converter.StringTrimConverters.BigDecimalStringTrimConverter())
+            .registerConverter(new com.ruoyi.common.importexport.converter.StringTrimConverters.ShortStringTrimConverter())
+            .registerConverter(new com.ruoyi.common.importexport.converter.StringTrimConverters.ByteStringTrimConverter())
+            .doReadAll();
             log.info("Excel所有Sheet读取完成，共解析 {} 条数据", resultList.size());
         } catch (Exception e) {
             log.error("Excel导入异常", e);
