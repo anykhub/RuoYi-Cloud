@@ -260,6 +260,7 @@ public class ExcelHandler<T> extends AbstractImportExportHandler<T> {
             .registerConverter(new com.ruoyi.common.importexport.converter.StringTrimConverters.BigDecimalStringTrimConverter())
             .registerConverter(new com.ruoyi.common.importexport.converter.StringTrimConverters.ShortStringTrimConverter())
             .registerConverter(new com.ruoyi.common.importexport.converter.StringTrimConverters.ByteStringTrimConverter())
+            .registerConverter(new com.ruoyi.common.importexport.converter.StringTrimConverters.DateStringTrimConverter())
             .doReadAll();
             log.info("Excel所有Sheet读取完成，共解析 {} 条数据", resultList.size());
         } catch (Exception e) {

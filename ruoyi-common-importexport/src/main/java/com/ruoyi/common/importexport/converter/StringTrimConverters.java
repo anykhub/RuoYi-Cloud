@@ -7,11 +7,14 @@ import com.alibaba.excel.metadata.data.ReadCellData;
 import com.alibaba.excel.metadata.data.WriteCellData;
 import com.alibaba.excel.metadata.property.ExcelContentProperty;
 
+import com.alibaba.excel.util.DateUtils;
+
 import java.math.BigDecimal;
+import java.util.Date;
 
 /**
- * 自动去除单元格字符串空格的数字转换器集合
- * 解决 Excel 导入时非字符串单元格（Long, Integer, Double, Float, BigDecimal 等）包含空格导致 ExcelDataConvertException 的问题
+ * 自动去除单元格字符串空格的数字与日期转换器集合
+ * 解决 Excel 导入时非字符串单元格（Long, Integer, Double, Float, BigDecimal, Date 等）包含空格或空字符串导致 ExcelDataConvertException 的问题
  *
  * @author ruoyi
  */
@@ -49,7 +52,7 @@ public class StringTrimConverters {
 
         @Override
         public WriteCellData<?> convertToExcelData(Long value, ExcelContentProperty contentProperty,
-                                                    GlobalConfiguration globalConfiguration) {
+                                                   GlobalConfiguration globalConfiguration) {
             if (value == null) {
                 return new WriteCellData<>("");
             }
@@ -89,7 +92,7 @@ public class StringTrimConverters {
 
         @Override
         public WriteCellData<?> convertToExcelData(Integer value, ExcelContentProperty contentProperty,
-                                                    GlobalConfiguration globalConfiguration) {
+                                                   GlobalConfiguration globalConfiguration) {
             if (value == null) {
                 return new WriteCellData<>("");
             }
@@ -129,7 +132,7 @@ public class StringTrimConverters {
 
         @Override
         public WriteCellData<?> convertToExcelData(Double value, ExcelContentProperty contentProperty,
-                                                    GlobalConfiguration globalConfiguration) {
+                                                   GlobalConfiguration globalConfiguration) {
             if (value == null) {
                 return new WriteCellData<>("");
             }
@@ -169,7 +172,7 @@ public class StringTrimConverters {
 
         @Override
         public WriteCellData<?> convertToExcelData(Float value, ExcelContentProperty contentProperty,
-                                                    GlobalConfiguration globalConfiguration) {
+                                                   GlobalConfiguration globalConfiguration) {
             if (value == null) {
                 return new WriteCellData<>("");
             }
@@ -193,7 +196,7 @@ public class StringTrimConverters {
 
         @Override
         public BigDecimal convertToJavaData(ReadCellData<?> cellData, ExcelContentProperty contentProperty,
-                                             GlobalConfiguration globalConfiguration) {
+                                            GlobalConfiguration globalConfiguration) {
             if (cellData == null) {
                 return null;
             }
@@ -209,7 +212,7 @@ public class StringTrimConverters {
 
         @Override
         public WriteCellData<?> convertToExcelData(BigDecimal value, ExcelContentProperty contentProperty,
-                                                    GlobalConfiguration globalConfiguration) {
+                                                   GlobalConfiguration globalConfiguration) {
             if (value == null) {
                 return new WriteCellData<>("");
             }
@@ -249,7 +252,7 @@ public class StringTrimConverters {
 
         @Override
         public WriteCellData<?> convertToExcelData(Short value, ExcelContentProperty contentProperty,
-                                                    GlobalConfiguration globalConfiguration) {
+                                                   GlobalConfiguration globalConfiguration) {
             if (value == null) {
                 return new WriteCellData<>("");
             }
@@ -289,11 +292,70 @@ public class StringTrimConverters {
 
         @Override
         public WriteCellData<?> convertToExcelData(Byte value, ExcelContentProperty contentProperty,
-                                                    GlobalConfiguration globalConfiguration) {
+                                                   GlobalConfiguration globalConfiguration) {
             if (value == null) {
                 return new WriteCellData<>("");
             }
             return new WriteCellData<>(value.toString());
+        }
+    }
+
+    /**
+     * Date 类型安全去空格与空单元格转换器
+     */
+    public static class DateStringTrimConverter implements Converter<Date> {
+        @Override
+        public Class<?> supportJavaTypeKey() {
+            return Date.class;
+        }
+
+        @Override
+        public CellDataTypeEnum supportExcelTypeKey() {
+            return CellDataTypeEnum.STRING;
+        }
+
+        @Override
+        public Date convertToJavaData(ReadCellData<?> cellData, ExcelContentProperty contentProperty,
+                                      GlobalConfiguration globalConfiguration) throws Exception {
+            if (cellData == null) {
+                return null;
+            }
+            if (cellData.getType() == CellDataTypeEnum.EMPTY) {
+                return null;
+            }
+            if (cellData.getType() == CellDataTypeEnum.NUMBER) {
+                return new com.alibaba.excel.converters.date.DateNumberConverter()
+                        .convertToJavaData(cellData, contentProperty, globalConfiguration);
+            }
+            if (cellData.getType() == CellDataTypeEnum.DATE && cellData.getData() instanceof Date) {
+                return (Date) cellData.getData();
+            }
+            String stringValue = cellData.getStringValue();
+            if (stringValue == null || stringValue.trim().isEmpty()) {
+                return null;
+            }
+            stringValue = stringValue.trim();
+            if (contentProperty != null && contentProperty.getDateTimeFormatProperty() != null) {
+                String format = contentProperty.getDateTimeFormatProperty().getFormat();
+                try {
+                    return DateUtils.parseDate(stringValue, format);
+                } catch (Exception ignored) {
+                    // 如果指定格式解析失败，降级尝试自适应格式解析
+                }
+            }
+            return DateUtils.parseDate(stringValue, null);
+        }
+
+        @Override
+        public WriteCellData<?> convertToExcelData(Date value, ExcelContentProperty contentProperty,
+                                                   GlobalConfiguration globalConfiguration) {
+            if (value == null) {
+                return new WriteCellData<>("");
+            }
+            String format = (contentProperty != null && contentProperty.getDateTimeFormatProperty() != null)
+                    ? contentProperty.getDateTimeFormatProperty().getFormat()
+                    : null;
+            return new WriteCellData<>(DateUtils.format(value, format));
         }
     }
 }
